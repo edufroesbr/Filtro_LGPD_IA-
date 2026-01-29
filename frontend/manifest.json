@@ -1,0 +1,20 @@
+{
+    "name": "Participa DF - Ouvidoria Inteligente",
+    "short_name": "Participa DF",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "background_color": "#ecf0f3",
+    "theme_color": "#4a90e2",
+    "icons": [
+        {
+            "src": "https://cdn-icons-png.flaticon.com/512/9312/9312239.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "https://cdn-icons-png.flaticon.com/512/9312/9312239.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}

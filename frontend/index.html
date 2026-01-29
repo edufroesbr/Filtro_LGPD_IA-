@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Participa DF - Ouvidoria Inteligente</title>
+    <meta name="description" content="Ouvidoria Inteligente do Distrito Federal - Cidadania e Tecnologia">
+    <meta name="theme-color" content="#003366">
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <!-- Official Header -->
+    <header class="official-header">
+        <div class="header-container">
+            <div class="left-logos">
+                <div class="gdf-logo-group">
+                    <img src="https://images.sympla.com.br/64d11516-168a-438c-859a-1c6da47f3b89.png" alt="GDF Logo"
+                        class="gdf-crest">
+                    <div class="separador"></div>
+                    <div class="logo-text">
+                        <span>Controladoria-Geral do</span>
+                        <span>Distrito Federal</span>
+                    </div>
+                </div>
+                <!-- Participa DF Logo Styled -->
+                <div class="participa-logo-container">
+                    <div class="participa-text">Participa<b>DF</b></div>
+                </div>
+            </div>
+
+            <div class="user-area">
+                <button id="submissions-btn"
+                    style="background:none; border:none; cursor:pointer; margin-right:10px; font-size:1.2rem;"
+                    aria-label="Minhas Manifestações" title="Minhas Manifestações">📂</button>
+                <button id="settings-btn"
+                    style="background:none; border:none; cursor:pointer; margin-right:10px; font-size:1.2rem;"
+                    aria-label="Configurações">⚙️</button>
+                <i class="user-icon">👤</i>
+                <span>EDUARDO FROES RIBEIRO DE OLIVA ▼</span>
+            </div>
+        </div>
+        <nav class="official-nav">
+            <ul>
+                <li class="active">Participa DF</li>
+                <li>Acesso à Informação</li>
+                <li>Ouvidoria</li>
+                <li>Perguntas Frequentes</li>
+                <li>Meus Registros</li>
+                <li>Transparência</li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="main-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="service-icon-box">
+                <div class="icon-circle">i</div>
+                <span>Acesso à <br>Informação</span>
+            </div>
+            <button class="desc-btn">
+                <span>Descrição do Registro</span>
+                <span>▼</span>
+            </button>
+        </div>
+
+        <div class="form-content">
+            <div class="form-header-row">
+                <label for="text-input" class="info-label">Novo Registro de Ouvidoria</label>
+                <button class="info-pill" aria-label="Orientações sobre o registro">ℹ️ Orientações</button>
+            </div>
+
+            <div class="input-wrapper">
+                <!-- Tabs -->
+                <div class="tabs" role="tablist" style="margin-bottom: 20px; border-bottom: 2px solid #eee;">
+                    <button class="tab-btn active" data-type="text" role="tab" aria-selected="true"
+                        style="padding: 10px 20px; background:none; border:none; font-weight:600; cursor:pointer; color: var(--gdf-blue-dark); border-bottom: 3px solid var(--gdf-blue-dark);">📝
+                        Texto</button>
+                    <button class="tab-btn" data-type="audio" role="tab" aria-selected="false"
+                        style="padding: 10px 20px; background:none; border:none; font-weight:600; cursor:pointer; color: #888;">🎙️
+                        Áudio (IA)</button>
+                    <button class="tab-btn" data-type="video" role="tab" aria-selected="false"
+                        style="padding: 10px 20px; background:none; border:none; font-weight:600; cursor:pointer; color: #888;">📹
+                        Vídeo</button>
+                </div>
+
+                <!-- Text Area with Toolbar -->
+                <div id="text-section" class="input-section" role="tabpanel">
+                    <div class="textarea-toolbar">
+                        <button id="improve-text-btn" class="ai-btn"
+                            aria-label="Melhorar texto com Inteligência Artificial">✨ Melhorar texto com IA</button>
+                    </div>
+                    <textarea id="text-input" maxlength="8000" placeholder="Descreva sua solicitação com detalhes..."
+                        aria-label="Área de texto para descrição da manifestação"></textarea>
+                    <div class="char-count" aria-live="polite">8000 caracteres restantes</div>
+                </div>
+
+                <!-- Live Audio Transcription Section -->
+                <div id="audio-section" class="input-section hidden" role="tabpanel">
+                    <div class="audio-interface">
+                        <div class="live-transcription-box" id="live-transcription" aria-live="polite">
+                            <span class="placeholder-text">Clique em "Gravar" e comece a falar. Sua fala será transcrita
+                                aqui em tempo real...</span>
+                        </div>
+
+                        <!-- Visualizer -->
+                        <div class="visualizer-container"
+                            style="height: 60px; width: 100%; display: flex; align-items: center; justify-content: center; background: #f0f4f8; border-radius: 10px; margin-bottom: 20px; overflow: hidden;"
+                            aria-hidden="true">
+                            <canvas id="audio-visualizer" width="600" height="60"></canvas>
+                        </div>
+
+                        <div class="audio-controls-row">
+                            <div class="status-indicator" id="audio-status" aria-live="status">
+                                <span
+                                    style="width: 10px; height: 10px; background: #ccc; border-radius: 50%; display: inline-block;"></span>
+                                Pronto para gravar
+                            </div>
+                            <div class="buttons-group">
+                                <button id="record-btn" class="ctrl-btn record"
+                                    aria-label="Iniciar gravação de áudio">🎤 Gravar</button>
+                                <button id="pause-btn" class="ctrl-btn pause" disabled aria-label="Pausar gravação">⏸️
+                                    Pausar</button>
+                                <button id="stop-btn" class="ctrl-btn stop" disabled aria-label="Finalizar gravação">⏹️
+                                    Finalizar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video Recording Section -->
+                <div id="video-section" class="input-section hidden" role="tabpanel">
+                    <div class="video-interface" style="display: flex; flex-direction: column; gap: 20px;">
+                        <div class="video-preview-box"
+                            style="background: black; border-radius: 10px; overflow: hidden; position: relative; aspect-ratio: 16/9;">
+                            <video id="video-preview" autoplay muted playsinline
+                                style="width: 100%; height: 100%; object-fit: cover;"
+                                aria-label="Visualização da câmera"></video>
+                            <video id="video-playback" controls
+                                style="width: 100%; height: 100%; object-fit: contain; display: none;"
+                                aria-label="Reprodução do vídeo gravado"></video>
+                        </div>
+
+                        <div class="audio-controls-row">
+                            <div class="status-indicator" id="video-status" aria-live="status">
+                                <span
+                                    style="width: 10px; height: 10px; background: #ccc; border-radius: 50%; display: inline-block;"></span>
+                                Câmera desligada
+                            </div>
+                            <div class="buttons-group">
+                                <button id="start-camera-btn" class="ctrl-btn" style="background: #17a2b8;"
+                                    aria-label="Ativar câmera">📷 Abrir Câmera</button>
+                                <button id="record-video-btn" class="ctrl-btn record" disabled
+                                    aria-label="Gravar vídeo">⏺️ Gravar</button>
+                                <button id="stop-video-btn" class="ctrl-btn stop" disabled
+                                    aria-label="Parar gravação">⏹️ Parar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Review / Summary Section -->
+                <div id="review-section" class="hidden">
+                    <div class="ai-summary-box">
+                        <h4>🤖 Texto Transcrito (Pode editar se precisar)</h4>
+                        <!-- Using a textarea for editing the transcription -->
+                        <textarea id="ai-summary-text" class="summary-textarea"></textarea>
+                        <div class="review-actions">
+                            <button id="confirm-summary-btn" class="success-btn">✅ Usar este texto</button>
+                            <button id="retry-audio-btn" class="danger-btn">🔄 Gravar Novamente</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attachments -->
+            <div class="attachments-area">
+                <button class="attach-btn">📎 Anexar arquivo</button>
+                <span style="font-size: 0.8rem; color: #666;">Limite de 25 MB. (PDF, JPG, MP4, MP3)</span>
+            </div>
+
+            <!-- Subject (AI Categorization Result) -->
+            <div class="subject-area">
+                <div class="form-header">
+                    <h3>Análise Inteligente (IA)</h3>
+                </div>
+
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <div class="ai-pill hidden" id="ai-feedback">
+                        <span style="font-size: 1.2rem;">🤖</span>
+                        <span id="ai-category">Detectando...</span>
+                    </div>
+
+                    <div class="ai-pill hidden" id="privacy-pill"
+                        style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); color: #155724; border-color: #c3e6cb;">
+                        <span style="font-size: 1.2rem;">🛡️</span>
+                        <span id="privacy-status">Público</span>
+                    </div>
+                </div>
+                <p id="pii-warning" class="hidden"
+                    style="color: #dc3545; font-size: 0.9rem; margin-top: 10px; font-weight: bold;">⚠️ Dados pessoais
+                    detectados! Sua manifestação foi marcada como Sigilosa para proteger sua identidade.</p>
+            </div>
+
+            <div class="submit-area">
+                <button id="submit-btn" class="submit-final-btn">Enviar Registro</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Accessibility FAB -->
+    <div style="position: fixed; bottom: 30px; left: 30px; z-index: 1000;">
+        <button aria-label="Acessibilidade"
+            style="width: 50px; height: 50px; border-radius: 50%; background: var(--gdf-blue-dark); color: white; border: none; font-size: 1.5rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">♿</button>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="hidden"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px); overflow-y: auto; padding: 20px;">
+        <div
+            style="background: white; padding: 30px; border-radius: 16px; width: 90%; max-width: 700px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
+            <h2 style="color: var(--gdf-blue-dark); margin-bottom: 20px;">⚙️ Configurações</h2>
+
+            <!-- API Key Section -->
+            <div style="margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #eee;">
+                <h3 style="font-size: 1.1rem; margin-bottom: 15px; color: #333;">🤖 Inteligência Artificial</h3>
+                <p style="margin-bottom: 15px; color: #555; font-size: 0.9rem;">Para utilizar a inteligência real
+                    (Google Gemini), insira sua chave de
+                    API abaixo. Caso contrário, o sistema usará o modo de simulação.</p>
+
+                <div style="margin-bottom: 15px;">
+                    <label for="api-key-input" style="display: block; font-weight: bold; margin-bottom: 8px;">Google
+                        Gemini
+                        API Key
+                        (Opcional)</label>
+                    <input type="password" id="api-key-input" placeholder="AIzaSy..."
+                        style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem;">
+                </div>
+            </div>
+
+            <!-- Privacy Filters Section -->
+            <div style="margin-bottom: 30px;">
+                <h3 style="font-size: 1.1rem; margin-bottom: 10px; color: #333;">🛡️ Filtros de Privacidade (LGPD)</h3>
+                <p style="margin-bottom: 20px; color: #555; font-size: 0.9rem;">Selecione quais tipos de dados pessoais
+                    você deseja que sejam detectados e filtrados automaticamente:</p>
+
+                <!-- Documents Category -->
+                <div class="pii-category"
+                    style="margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                    <h4 style="font-size: 1rem; margin-bottom: 12px; color: var(--gdf-blue-dark);">📄 Documentos de
+                        Identidade</h4>
+                    <div
+                        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" class="pii-filter" data-pii-type="cpf" checked
+                                style="width: 18px; height: 18px;">
+                            <span style="font-size: 0.9rem;">CPF</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" class="pii-filter" data-pii-type="rg" checked
+                                style="width: 18px; height: 18px;">
+                            <span style="font-size: 0.9rem;">RG</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" class="pii-filter" data-pii-type="cnh" checked
+                                style="width: 18px; height: 18px;">
+                            <span style="font-size: 0.9rem;">CNH</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" class="pii-filter" data-pii-type="passport" checked
+                                style="width: 18px; height: 18px;">
+                            <span style="font-size: 0.9rem;">Passaporte</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" class="pii-filter" data-pii-type="voter_id" checked
+                                style="width: 18px; height: 18px;">
+                            <span style="font-size: 0.9rem;">Título de Eleitor</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" class="pii-filter" data-pii-type="birth_cert" checked
+                                style="width: 18px; height: 18px;">
+                            <span style="font-size: 0.9rem;">Certidão Nasc.</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Contact Category -->
+                <div class="pii-category"
+                    style="margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                    <h4 style="font-size: 1rem; margin-bottom: 12px; color: var(--gdf-blue-dark);">📞 Informações de
+                        Contato</h4>
+                    <div
+                        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" class="pii-filter" data-pii-type="email" checked
+                                style="width: 18px; height: 18px;">
+                            <span style="font-size: 0.9rem;">Email</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" class="pii-filter" data-pii-type="phone" checked
+                                style="width: 18px; height: 18px;">
+                            <span style="font-size: 0.9rem;">Telefone</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" class="pii-filter" data-pii-type="address" checked
+                                style="width: 18px; height: 18px;">
+                            <span style="font-size: 0.9rem;">Endereço</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" class="pii-filter" data-pii-type="cep" checked
+                                style="width: 18px; height: 18px;">
+                            <span style="font-size: 0.9rem;">CEP</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Financial Category -->
+                <div class="pii-category"
+                    style="margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                    <h4 style="font-size: 1rem; margin-bottom: 12px; color: var(--gdf-blue-dark);">💳 Dados Financeiros
+                    </h4>
+                    <div
+                        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" class="pii-filter" data-pii-type="bank_account" checked
+                                style="width: 18px; height: 18px;">
+                            <span style="font-size: 0.9rem;">Conta Bancária</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" class="pii-filter" data-pii-type="credit_card" checked
+                                style="width: 18px; height: 18px;">
+                            <span style="font-size: 0.9rem;">Cartão de Crédito</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" class="pii-filter" data-pii-type="pix" checked
+                                style="width: 18px; height: 18px;">
+                            <span style="font-size: 0.9rem;">Chave PIX</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Vehicles Category -->
+                <div class="pii-category"
+                    style="margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                    <h4 style="font-size: 1rem; margin-bottom: 12px; color: var(--gdf-blue-dark);">🚗 Veículos</h4>
+                    <div
+                        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" class="pii-filter" data-pii-type="plate" checked
+                                style="width: 18px; height: 18px;">
+                            <span style="font-size: 0.9rem;">Placa de Veículo</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button id="select-all-pii"
+                        style="padding: 8px 15px; border: 1px solid var(--gdf-green); background: none; color: var(--gdf-green); border-radius: 6px; cursor: pointer; font-size: 0.85rem; flex: 1;">✓
+                        Selecionar Todos</button>
+                    <button id="deselect-all-pii"
+                        style="padding: 8px 15px; border: 1px solid #dc3545; background: none; color: #dc3545; border-radius: 6px; cursor: pointer; font-size: 0.85rem; flex: 1;">✗
+                        Desmarcar Todos</button>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button id="close-settings-btn"
+                    style="padding: 10px 20px; border: none; background: #eee; border-radius: 8px; cursor: pointer;">Cancelar</button>
+                <button id="save-settings-btn"
+                    style="padding: 10px 20px; border: none; background: var(--gdf-green); color: white; border-radius: 8px; font-weight: bold; cursor: pointer;">💾
+                    Salvar Configurações</button>
+            </div>
+            <p id="settings-status" style="margin-top: 10px; font-size: 0.9rem; text-align: center;"></p>
+        </div>
+    </div>
+
+    <!-- My Submissions Modal -->
+    <div id="submissions-modal" class="hidden"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
+        <div
+            style="background: white; padding: 30px; border-radius: 16px; width: 90%; max-width: 800px; height: 80vh; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="color: var(--gdf-blue-dark); margin: 0;">Minhas Manifestações</h2>
+                <button id="close-submissions-btn"
+                    style="background:none; border:none; font-size: 1.5rem; cursor: pointer;">✕</button>
+            </div>
+
+            <div id="submissions-list" style="flex: 1; overflow-y: auto; padding-right: 10px;">
+                <!-- Submissions will be injected here -->
+                <p style="text-align: center; color: #888; margin-top: 50px;">Nenhuma manifestação registrada ainda.</p>
+            </div>
+
+            <div style="margin-top: 20px; text-align: right;">
+                <button id="clear-db-btn"
+                    style="padding: 8px 15px; border: 1px solid #dc3545; background: none; color: #dc3545; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">Limpar
+                    Histórico</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Redacted Text Modal -->
+    <div id="redacted-modal" class="hidden"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
+        <div
+            style="background: white; padding: 30px; border-radius: 16px; width: 90%; max-width: 600px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+            <h2 style="color: var(--gdf-green); margin-bottom: 20px;">Versão Pública (Anônima)</h2>
+            <p style="margin-bottom: 15px; color: #555;">Abaixo está a versão que será disponibilizada publicamente, com
+                todos os dados pessoais removidos para conformidade com a LGPD.</p>
+
+            <div
+                style="background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px dashed #ccc; margin-bottom: 20px;">
+                <p id="redacted-content" style="font-family: monospace; white-space: pre-wrap; color: #333;"></p>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end;">
+                <button id="close-redacted-btn"
+                    style="padding: 10px 20px; border: none; background: var(--gdf-blue-dark); color: white; border-radius: 8px; font-weight: bold; cursor: pointer;">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        // Simple tab switching logic inject for immediate feedback (though app.js handles it too)
+        const tabs = document.querySelectorAll('.tab-btn');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => {
+                    t.classList.remove('active');
+                    t.style.color = '#888';
+                    t.style.borderBottom = 'none';
+                });
+                tab.classList.add('active');
+                tab.style.color = 'var(--gdf-blue-dark)';
+                tab.style.borderBottom = '3px solid var(--gdf-blue-dark)';
+            });
+        });
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js');
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,31 @@
+{
+    "Solicitação": [
+        "Tapa-buraco",
+        "Iluminação Pública",
+        "Poda de Árvore",
+        "Coleta de Lixo"
+    ],
+    "Reclamação": [
+        "Atendimento",
+        "Transporte Público",
+        "Saúde",
+        "Segurança"
+    ],
+    "Denúncia": [
+        "Obra Irregular",
+        "Descarte Irregular",
+        "Uso Indevido"
+    ],
+    "Elogio": [
+        "Servidor",
+        "Serviço Público"
+    ],
+    "Sugestão": [
+        "Melhoria Urbana",
+        "Eventos"
+    ],
+    "Informação": [
+        "Documentos",
+        "Horários"
+    ]
+}

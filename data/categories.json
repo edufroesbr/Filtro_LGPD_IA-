@@ -1,0 +1,78 @@
+{
+    "categories": [
+        {
+            "id": "denuncia",
+            "name": "Denúncia",
+            "description": "Comunicação de irregularidades, exercício negligente ou abusivo de cargos, infrações disciplinares ou corrupção.",
+            "subcategories": [
+                "Irregularidade Administrativa",
+                "Assédio Moral/Sexual",
+                "Corrupção",
+                "Uso Indevido de Recursos",
+                "Acumulação Ilegal de Cargos",
+                "Outros"
+            ]
+        },
+        {
+            "id": "reclamacao",
+            "name": "Reclamação",
+            "description": "Demonstração de insatisfação quanto a serviços prestados, ações ou omissões da administração.",
+            "subcategories": [
+                "Mau Atendimento",
+                "Demora no Atendimento",
+                "Qualidade do Serviço",
+                "Falta de Medicamentos/Insumos",
+                "Conduta de Servidor",
+                "Estrutura Física"
+            ]
+        },
+        {
+            "id": "sugestao",
+            "name": "Sugestão",
+            "description": "Proposta de melhoria ou nova iniciativa para a administração pública.",
+            "subcategories": [
+                "Simplificação de Processos",
+                "Melhoria na Infraestrutura",
+                "Novos Canais de Atendimento",
+                "Alteração de Legislação",
+                "Outros"
+            ]
+        },
+        {
+            "id": "elogio",
+            "name": "Elogio",
+            "description": "Demonstração de satisfação ou reconhecimento por um serviço prestado.",
+            "subcategories": [
+                "Atendimento Eficiente",
+                "Cordialidade",
+                "Rapidez na Solução",
+                "Equipe Comprometida"
+            ]
+        },
+        {
+            "id": "solicitacao",
+            "name": "Solicitação",
+            "description": "Requerimento de prestação de serviços públicos.",
+            "subcategories": [
+                "Tapa-buraco",
+                "Iluminação Pública",
+                "Poda de Árvores",
+                "Coleta de Lixo",
+                "Sinalização de Trânsito",
+                "Fiscalização"
+            ]
+        },
+        {
+            "id": "informacao",
+            "name": "Informação",
+            "description": "Pedido de dados ou orientações sobre serviços e funcionamento de órgãos.",
+            "subcategories": [
+                "Horário de Funcionamento",
+                "Locais de Atendimento",
+                "Documentos Necessários",
+                "Andamento de Processos",
+                "Contatos/Telefones"
+            ]
+        }
+    ]
+}

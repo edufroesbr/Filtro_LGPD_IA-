@@ -1,0 +1,157 @@
+{
+    "pii_types": {
+        "documents": {
+            "label": "Documentos de Identidade",
+            "types": [
+                {
+                    "id": "cpf",
+                    "name": "CPF",
+                    "description": "Cadastro de Pessoa Física",
+                    "enabled": true,
+                    "severity": "high"
+                },
+                {
+                    "id": "rg",
+                    "name": "RG",
+                    "description": "Registro Geral",
+                    "enabled": true,
+                    "severity": "high"
+                },
+                {
+                    "id": "cnh",
+                    "name": "CNH",
+                    "description": "Carteira Nacional de Habilitação",
+                    "enabled": true,
+                    "severity": "high"
+                },
+                {
+                    "id": "passport",
+                    "name": "Passaporte",
+                    "description": "Número de passaporte",
+                    "enabled": true,
+                    "severity": "high"
+                },
+                {
+                    "id": "voter_id",
+                    "name": "Título de Eleitor",
+                    "description": "Número do título de eleitor",
+                    "enabled": true,
+                    "severity": "medium"
+                },
+                {
+                    "id": "birth_certificate",
+                    "name": "Certidão de Nascimento",
+                    "description": "Número de certidão de nascimento",
+                    "enabled": true,
+                    "severity": "high"
+                }
+            ]
+        },
+        "contact": {
+            "label": "Informações de Contato",
+            "types": [
+                {
+                    "id": "email",
+                    "name": "Email",
+                    "description": "Endereço de e-mail",
+                    "enabled": true,
+                    "severity": "medium"
+                },
+                {
+                    "id": "phone",
+                    "name": "Telefone",
+                    "description": "Número de telefone/celular",
+                    "enabled": true,
+                    "severity": "medium"
+                },
+                {
+                    "id": "address",
+                    "name": "Endereço",
+                    "description": "Endereço residencial completo",
+                    "enabled": true,
+                    "severity": "high"
+                },
+                {
+                    "id": "cep",
+                    "name": "CEP",
+                    "description": "Código de Endereçamento Postal",
+                    "enabled": true,
+                    "severity": "low"
+                }
+            ]
+        },
+        "financial": {
+            "label": "Dados Financeiros",
+            "types": [
+                {
+                    "id": "bank_account",
+                    "name": "Conta Bancária",
+                    "description": "Número de agência e conta bancária",
+                    "enabled": true,
+                    "severity": "critical"
+                },
+                {
+                    "id": "credit_card",
+                    "name": "Cartão de Crédito",
+                    "description": "Número de cartão de crédito",
+                    "enabled": true,
+                    "severity": "critical"
+                },
+                {
+                    "id": "pix",
+                    "name": "Chave PIX",
+                    "description": "Chave PIX (UUID, email, telefone, CPF)",
+                    "enabled": true,
+                    "severity": "high"
+                }
+            ]
+        },
+        "vehicles": {
+            "label": "Veículos",
+            "types": [
+                {
+                    "id": "plate_old",
+                    "name": "Placa Antiga",
+                    "description": "Placa de veículo (formato antigo ABC-1234)",
+                    "enabled": true,
+                    "severity": "medium"
+                },
+                {
+                    "id": "plate_mercosul",
+                    "name": "Placa Mercosul",
+                    "description": "Placa de veículo (formato Mercosul ABC1D23)",
+                    "enabled": true,
+                    "severity": "medium"
+                }
+            ]
+        },
+        "personal": {
+            "label": "Dados Pessoais Contextuais",
+            "types": [
+                {
+                    "id": "name",
+                    "name": "Nome Pessoal",
+                    "description": "Nome de pessoa física (detectado por IA)",
+                    "enabled": true,
+                    "severity": "high"
+                },
+                {
+                    "id": "health",
+                    "name": "Dados de Saúde",
+                    "description": "Informações médicas ou de saúde",
+                    "enabled": true,
+                    "severity": "critical"
+                },
+                {
+                    "id": "family_dispute",
+                    "name": "Conflitos Familiares",
+                    "description": "Relatos de disputas ou situações familiares",
+                    "enabled": true,
+                    "severity": "high"
+                }
+            ]
+        }
+    },
+    "default_enabled": true,
+    "strict_mode": false
+}
