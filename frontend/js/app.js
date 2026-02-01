@@ -28,49 +28,132 @@ const submissionsModal = document.getElementById('submissions-modal');
 const closeSubmissionsBtn = document.getElementById('close-submissions-btn');
 const submissionsList = document.getElementById('submissions-list');
 const clearDbBtn = document.getElementById('clear-db-btn');
-const finalSubmitBtn = document.getElementById('final-submit-btn'); // Need to ensure this exists in HTML or find the button
+// Button elements
+const submitBtn = document.getElementById('submit-btn');
+const settingsBtn = document.getElementById('settings-btn');
+const settingsModal = document.getElementById('settings-modal');
+const closeSettingsBtn = document.getElementById('close-settings-btn');
+const saveSettingsBtn = document.getElementById('save-settings-btn');
+const apiKeyInput = document.getElementById('api-key-input');
 
 let latestRedactedText = "";
-let db = JSON.parse(localStorage.getItem('participa_df_db') || '[]');
+let lastClassificationResult = null; // Store last server classification result
 
-// --- Database Logic ---
-function saveSubmission(data) {
-    db.unshift(data); // Add to top
-    localStorage.setItem('participa_df_db', JSON.stringify(db));
-    alert("Manifestação enviada com sucesso! Protocolo: " + data.id);
-    // Clear form
-    textInput.value = '';
-    aiCategory.textContent = 'Detectando...';
-    aiFeedback.classList.add('hidden');
-    privacyPill.classList.add('hidden');
-    piiWarning.classList.add('hidden');
-    if (viewRedactedBtn) viewRedactedBtn.classList.add('hidden');
+// --- Database Logic (Server-Side Only) ---
+async function saveSubmission(data) {
+    // 1. Send to server for permanent CSV logging
+    try {
+        const response = await fetch('/api/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) throw new Error('Erro ao salvar no servidor');
+
+        const result = await response.json();
+        // Use server-returned ID or original
+        const finalId = result.id || data.id;
+
+        // Success UI
+        const submitBtn = document.getElementById('submit-btn');
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = '✅ Enviado com sucesso!';
+        submitBtn.style.background = '#28a745';
+        submitBtn.disabled = true;
+
+        // Show confirmation modal with server UUID (first 8 chars for readability)
+        // Show confirmation modal with server UUID (first 8 chars for readability)
+        const displayId = finalId.length > 8 ? finalId.substring(0, 8) : finalId;
+
+        let privacyMessageHTML = '';
+        if (data.privacy === 'Sigiloso') {
+            privacyMessageHTML = `
+                <div style="background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 0.95rem; text-align: left; border: 1px solid #ffeeba;">
+                    <strong>⚠️ Atenção:</strong><br>
+                    Como sua manifestação possui dados sensíveis, ela foi classificada como <strong>Sigiloso</strong> para proteção da sua identidade.
+                </div>
+            `;
+        } else {
+            privacyMessageHTML = `
+                <p style="color: #666; margin-bottom: 25px;">Status de privacidade: <strong style="color: #28a745;">${data.privacy}</strong></p>
+            `;
+        }
+
+        const confirmationHTML = `
+            <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
+                <div style="background: white; padding: 40px; border-radius: 20px; max-width: 500px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+                    <div style="font-size: 4rem; margin-bottom: 20px;">✅</div>
+                    <h2 style="color: #28a745; margin-bottom: 15px;">Manifestação Enviada!</h2>
+                    <p style="color: #666; margin-bottom: 10px; font-size: 1.1rem;">Seu protocolo é:</p>
+                    <p style="font-size: 2rem; font-weight: bold; color: #003366; margin-bottom: 20px;">#${displayId}</p>
+                    ${privacyMessageHTML}
+                    <button onclick="this.closest('div').parentElement.remove(); location.reload();" style="background: #003366; color: white; border: none; padding: 15px 40px; border-radius: 50px; font-size: 1.1rem; font-weight: bold; cursor: pointer;">OK, Entendi</button>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', confirmationHTML);
+
+        // Reset form after a delay is handled by location.reload() above, 
+        // but let's keep it safe if user doesn't reload
+        setTimeout(() => {
+            if (document.getElementById('submit-btn')) {
+                document.getElementById('submit-btn').textContent = originalText;
+                document.getElementById('submit-btn').style.background = '';
+                document.getElementById('submit-btn').disabled = false;
+            }
+        }, 3000);
+
+    } catch (e) {
+        console.error('Submission error:', e);
+        alert('❌ Ocorreu um erro ao enviar sua manifestação para o servidor: ' + e.message);
+    }
 }
 
-function renderSubmissions() {
-    submissionsList.innerHTML = '';
-    if (db.length === 0) {
-        submissionsList.innerHTML = '<p style="text-align: center; color: #888; margin-top: 50px;">Nenhuma manifestação registrada ainda.</p>';
-        return;
-    }
+async function renderSubmissions() {
+    submissionsList.innerHTML = '<p style="text-align: center; color: #888; margin-top: 50px;">Carregando...</p>';
 
-    db.forEach(item => {
-        const div = document.createElement('div');
-        div.style.cssText = 'background: #f8f9fa; border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 8px;';
-        div.innerHTML = `
-            <div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 5px;">
-                <strong style="color: var(--gdf-blue-dark);">#${item.id}</strong>
-                <span style="color: #666;">${item.date}</span>
-            </div>
-            <div style="margin-bottom: 10px;">
-                <span style="background: #e9ecef; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">${item.type}</span>
-                <span style="background: ${item.privacy === 'Sigiloso' ? '#f8d7da' : '#d4edda'}; color: ${item.privacy === 'Sigiloso' ? '#721c24' : '#155724'}; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; margin-left: 5px;">${item.privacy}</span>
-                <span style="background: #cce5ff; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; margin-left: 5px;">${item.category}</span>
-            </div>
-            <p style="font-size: 0.95rem; color: #333; white-space: pre-wrap;">${item.text}</p>
-        `;
-        submissionsList.appendChild(div);
-    });
+    try {
+        // Fetch from server API (unified data source - CSV only)
+        const response = await fetch('/api/submissions');
+        if (!response.ok) throw new Error('Falha ao buscar manifestações');
+
+        const data = await response.json();
+        const submissions = data.submissions || [];
+
+        submissionsList.innerHTML = '';
+
+        if (submissions.length === 0) {
+            submissionsList.innerHTML = '<p style="text-align: center; color: #888; margin-top: 50px;">Nenhuma manifestação registrada ainda.</p>';
+            return;
+        }
+
+        // Render server data (from CSV)
+        submissions.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'submission-item';
+
+            const privacyClass = item.privacy === 'Sigiloso' ? 'badge-sensitive' : 'badge-public';
+
+            div.innerHTML = `
+                <div class="submission-header">
+                    <span class="submission-protocol">#${item.id}</span>
+                    <span class="submission-date">${item.date}</span>
+                </div>
+                <div class="submission-badges">
+                    <span class="submission-badge badge-type">${item.type}</span>
+                    <span class="submission-badge ${privacyClass}">${item.privacy}</span>
+                    <span class="submission-badge badge-category">${item.category}</span>
+                </div>
+                <div class="submission-body">${item.text}</div>
+            `;
+            submissionsList.appendChild(div);
+        });
+
+    } catch (error) {
+        console.error('Error fetching submissions:', error);
+        submissionsList.innerHTML = '<p style="text-align: center; color: #dc3545; margin-top: 50px;">⚠️ Erro ao carregar manifestações do servidor. Verifique se o backend está rodando.</p>';
+    }
 }
 
 if (submissionsBtn) {
@@ -84,33 +167,85 @@ if (submissionsBtn) {
     });
 
     clearDbBtn.addEventListener('click', () => {
-        if (confirm('Tem certeza que deseja apagar todo o histórico?')) {
-            db = [];
-            localStorage.removeItem('participa_df_db');
-            renderSubmissions();
-        }
+        alert('⚠️ Esta funcionalidade requer acesso administrativo ao servidor para limpar o arquivo CSV.');
     });
 }
 
+// Dashboard Button logic is now handled by direct link in index.html
+
+// Settings Modal Logic
+if (settingsBtn) {
+    settingsBtn.addEventListener('click', () => {
+        settingsModal.classList.remove('hidden');
+        // Load latest key from storage
+        const key = localStorage.getItem('gemini_api_key');
+        if (key && apiKeyInput) apiKeyInput.value = key;
+        loadPIIFilters();
+    });
+
+    closeSettingsBtn.addEventListener('click', () => {
+        settingsModal.classList.add('hidden');
+    });
+
+    saveSettingsBtn.addEventListener('click', () => {
+        const newKey = apiKeyInput.value.trim();
+        localStorage.setItem('gemini_api_key', newKey);
+
+        // Save PII Preferences
+        const filters = {};
+        document.querySelectorAll('.pii-filter').forEach(checkbox => {
+            filters[checkbox.dataset.piiType] = checkbox.checked;
+        });
+        localStorage.setItem('pii_filters', JSON.stringify(filters));
+
+        settingsModal.classList.add('hidden');
+        alert('Configurações salvas localmente!');
+    });
+}
 // Hook into Submit Button
 // Using ID for selector safety
-document.getElementById('submit-btn').addEventListener('click', () => {
+document.getElementById('submit-btn').addEventListener('click', async () => {
     const text = textInput.value;
     if (!text) { alert('Por favor, descreva sua manifestação.'); return; }
 
-    // Enforce redaction if sensitive
-    const isSensitive = privacyStatus.textContent === 'Sigiloso';
-    const finalText = (isSensitive && latestRedactedText) ? latestRedactedText : text;
+    // Check if classification is complete or failed
+    let submissionResult = lastClassificationResult;
+
+    if (!submissionResult) {
+        // Fallback flow: Allow user to bypass the wait if it's stuck or failed
+        const proceed = confirm('⏳ A análise de privacidade ainda não foi concluída ou falhou.\n\nDeseja enviar assim mesmo? (Será classificado como "Geral/Público" até revisão posterior)');
+        if (!proceed) return;
+
+        // Create a default fallback result
+        submissionResult = {
+            id: 'manual-' + Date.now(),
+            is_sensitive: false,
+            privacy_status: 'Público',
+            reason: 'Envio forçado pelo usuário (Análise incompleta)',
+            category: 'Geral',
+            detected_pii: []
+        };
+    }
+
+    // Use the server classification result (or fallback)
+    // Use the server classification result (or fallback)
+    // CRITICAL: Re-check local PII to ensure we don't send "Público" if local regex caught something
+    const localCheck = checkLocalPII(text);
+    const isActuallySensitive = (submissionResult && submissionResult.is_sensitive) || localCheck.hasPII;
+    const finalPrivacyStatus = isActuallySensitive ? 'Sigiloso' : 'Público';
 
     const submission = {
-        id: Date.now().toString().slice(-6),
-        date: new Date().toLocaleString('pt-BR'),
-        text: finalText,
-        type: 'Texto', // Default, could simplify
-        category: aiCategory.textContent === 'Detectando...' ? 'Geral' : aiCategory.textContent,
-        privacy: privacyStatus.textContent
+        id: submissionResult.id || 'unknown',
+        text: text,
+        type: 'Texto',
+        category: (submissionResult && submissionResult.category)
+            ? submissionResult.category
+            : (isActuallySensitive ? "Dados Pessoais" : "Público"), // Fallback to Macro Categories
+        privacy: finalPrivacyStatus,
+        reason: submissionResult.reason || (localCheck.hasPII ? "Detectado Localmente" : "")
     };
-    saveSubmission(submission);
+
+    await saveSubmission(submission);
 });
 
 // Redacted View Listeners
@@ -125,12 +260,45 @@ if (viewRedactedBtn) {
     });
 }
 
-// PII Detection Logic
-async function detectAndRedactPII(text) {
-    if (!text) return { hasPII: false, reactedText: text };
+// Helper to check PII synchronously (Logic Only)
+function checkLocalPII(text) {
+    if (!text) return { hasPII: false, detected: [] };
 
     let hasPII = false;
+    let detected = [];
+
+    // Always Run Regex
+    const cpfRegex = /\d{3}\.?\d{3}\.?\d{3}-?\d{2}/g;
+    const emailRegex = /[\w.-]+@[\w.-]+\.\w+/g;
+    const phoneRegex = /\(?\d{2}\)?\s?\d{4,5}[\s-]?\d{4}/g;
+    // Enhanced DF Address Regex (Supports QNN, QNM, QSA, Setor, etc.)
+    const addressRegex = /\b(?:S[A-Z]{2,4}|Q[A-Z]{1,3}|QI|QL|CA|SMPW|SMDB|Park Way|Arniqueiras|Setor|Área|AE|Quadra|Q\.|Rua|Av\.|Avenida|Alameda|Travessa|Lote|Conjunto|Cj\.)\s+[A-Za-z0-9\s,.-]+|Bloco\s+[A-Z0-9]/i;
+
+    if (cpfRegex.test(text)) { hasPII = true; detected.push('CPF'); }
+    if (emailRegex.test(text)) { hasPII = true; detected.push('Email'); }
+    if (phoneRegex.test(text)) { hasPII = true; detected.push('Telefone'); }
+    if (addressRegex.test(text)) { hasPII = true; detected.push('Endereço'); }
+
+    return { hasPII, detected };
+}
+
+// PII Detection Logic (UI Wrapper)
+async function detectAndRedactPII(text) {
+    if (!text) return { hasPII: false, curatedText: text };
+
+    let { hasPII, detected } = checkLocalPII(text);
     let curatedText = text;
+
+    // Apply Redaction locally for visualization
+    const cpfRegex = /\d{3}\.?\d{3}\.?\d{3}-?\d{2}/g;
+    const emailRegex = /[\w.-]+@[\w.-]+\.\w+/g;
+    const phoneRegex = /\(?\d{2}\)?\s?\d{4,5}[\s-]?\d{4}/g;
+
+    if (hasPII) {
+        curatedText = curatedText.replace(cpfRegex, '[CPF]')
+            .replace(emailRegex, '[EMAIL]')
+            .replace(phoneRegex, '[TEL]');
+    }
 
     // 1. Real AI Check (if Key exists)
     const apiKey = localStorage.getItem('gemini_api_key');
@@ -140,49 +308,62 @@ async function detectAndRedactPII(text) {
 
         if (result && result.includes('[DADO PESSOAL]')) {
             hasPII = true;
-            curatedText = result;
+            curatedText = result; // Use AI's smarter redaction
         }
-    } else {
-        // 2. Mock Regex Check (Simulation)
-        const cpfRegex = /\d{3}\.?\d{3}\.?\d{3}-?\d{2}/g;
-        const emailRegex = /[\w.-]+@[\w.-]+\.\w+/g;
-        const phoneRegex = /\(?\d{2}\)?\s?\d{4,5}-?\d{4}/g;
-
-        if (cpfRegex.test(curatedText)) {
-            hasPII = true;
-            curatedText = curatedText.replace(cpfRegex, '[CPF]');
-        }
-        if (emailRegex.test(curatedText)) { hasPII = true; curatedText = curatedText.replace(emailRegex, '[EMAIL]'); }
-        if (phoneRegex.test(curatedText)) { hasPII = true; curatedText = curatedText.replace(phoneRegex, '[TEL]'); }
     }
 
     latestRedactedText = curatedText;
-    return { hasPII, curatedText };
+    return { hasPIi: hasPII, curatedText };
 }
 
+// Consolidated UI Update
 function updatePrivacyUI(isSensitive, statusLabel) {
-    privacyPill.classList.remove('hidden');
+    if (!aiCategory) return;
 
-    if (isSensitive) {
-        privacyPill.style.background = 'linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%)';
-        privacyPill.style.borderColor = '#f5c6cb';
-        privacyPill.style.color = '#721c24';
-        privacyStatus.textContent = statusLabel || "Sigiloso";
-        piiWarning.classList.remove('hidden');
-        if (viewRedactedBtn) viewRedactedBtn.classList.remove('hidden');
-    } else {
-        privacyPill.style.background = 'linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)';
-        privacyPill.style.borderColor = '#c3e6cb';
-        privacyPill.style.color = '#155724';
-        privacyStatus.textContent = statusLabel || "Público";
-        piiWarning.classList.add('hidden');
-        if (viewRedactedBtn) viewRedactedBtn.classList.add('hidden');
+    // Privacy Pill (The result badge) - Always show result
+    if (privacyPill) {
+        privacyPill.classList.remove('hidden');
+
+        if (isSensitive) {
+            // SENSITIVE -> Red, Padlock
+            privacyPill.style.background = "#f8d7da";
+            privacyPill.style.color = "#721c24";
+            privacyPill.style.borderColor = "#f5c6cb";
+            privacyPill.innerHTML = `<span style="font-size: 1.2rem;">🔒</span> <span id="privacy-status">Sigiloso</span>`;
+
+            // Robot (aiFeedback) -> SHOW logic
+            if (aiFeedback) {
+                aiFeedback.classList.remove('hidden');
+                // You can update the text inside the robot pill if desired, or leave as is
+                // For now, let's make the robot say "Opa!" or "Atenção"
+                if (aiCategory) aiCategory.textContent = "Atenção!";
+            }
+
+            if (piiWarning) piiWarning.classList.remove('hidden');
+            if (viewRedactedBtn) viewRedactedBtn.classList.remove('hidden');
+
+        } else {
+            // PUBLIC -> Green, Shield
+            privacyPill.style.background = "#d4edda";
+            privacyPill.style.color = "#155724";
+            privacyPill.style.borderColor = "#c3e6cb";
+            privacyPill.innerHTML = `<span style="font-size: 1.2rem;">🛡️</span> <span id="privacy-status">Público</span>`;
+
+            // Robot (aiFeedback) -> HIDE logic
+            if (aiFeedback) {
+                aiFeedback.classList.add('hidden');
+            }
+
+            if (piiWarning) piiWarning.classList.add('hidden');
+            if (viewRedactedBtn) viewRedactedBtn.classList.add('hidden');
+        }
     }
 }
 
 // Global PII Check Debounce
 let debounceTimer; // Fix: Declare debounceTimer
 let piiDebounceTimer;
+let localPIIDetected = false;
 textInput.addEventListener('input', (e) => {
     clearTimeout(debounceTimer);
     clearTimeout(piiDebounceTimer);
@@ -193,6 +374,7 @@ textInput.addEventListener('input', (e) => {
     // PII Check
     piiDebounceTimer = setTimeout(async () => {
         const { hasPII } = await detectAndRedactPII(e.target.value);
+        localPIIDetected = hasPII;
         updatePrivacyUI(hasPII);
     }, 800);
 });
@@ -274,6 +456,10 @@ async function categorize(text) {
     if (aiCategory) aiCategory.textContent = "Analisando privacidade...";
     if (aiFeedback) aiFeedback.classList.remove('hidden');
 
+    // 1. Synchronous Local Check (Safety First - Immediate)
+    const localCheck = checkLocalPII(text);
+    // const localIsSensitive = localCheck.hasPII; // unused
+
     try {
         // Get enabled PII types from user preferences
         const enabledPIITypes = getEnabledPIITypes();
@@ -289,28 +475,26 @@ async function categorize(text) {
 
         if (response.ok) {
             const result = await response.json();
-            // result = { is_sensitive, privacy_status, reason, detected_pii }
+            // result = { id, is_sensitive, privacy_status, reason, detected_detected_pii }
 
-            // Update Privacy UI
-            updatePrivacyUI(result.is_sensitive, result.privacy_status);
+            // Store result globally for submit button to use
+            lastClassificationResult = result;
 
-            // Show Reason/PII in the "Category" pill area for now (repurposing UI)
-            if (result.is_sensitive) {
-                aiCategory.textContent = `⚠️ Identificado: ${result.detected_pii.join(', ') || 'Dados Pessoais'}`;
-                aiCategory.style.background = "#f8d7da";
-                aiCategory.style.color = "#721c24";
-            } else {
-                aiCategory.textContent = "✅ Pronto para Transparência";
-                aiCategory.style.background = "#d4edda";
-                aiCategory.style.color = "#155724";
-            }
+            // Merge server result with local detection (Safety First)
+            // We RE-RUN local check here to be 100% sure we are using the current text state
+            // and not relying on any async race condition vars
+            const { hasPII: localHasPII, detected: localDetected } = checkLocalPII(text);
 
-            // Allow user to see the reason on hover or separate element?
-            // For hackathon, reusing the pill is fine.
+            const finalIsSensitive = result.is_sensitive || localHasPII;
+            const finalStatus = finalIsSensitive ? (result.is_sensitive ? result.privacy_status : "Sigiloso") : "Público";
+
+            // Update Privacy UI (Consolidated function)
+            updatePrivacyUI(finalIsSensitive, finalStatus);
         }
     } catch (e) {
         console.error("API Error:", e);
         aiCategory.textContent = "Erro na análise";
+        lastClassificationResult = null;
     }
 }
 
@@ -524,48 +708,13 @@ retryAudioBtn.addEventListener('click', () => {
 
 // --- AI Text Improvement Agent ---
 // --- Settings & OpenAI Logic ---
-const settingsBtn = document.getElementById('settings-btn');
-const settingsModal = document.getElementById('settings-modal');
-const closeSettingsBtn = document.getElementById('close-settings-btn');
-const saveSettingsBtn = document.getElementById('save-settings-btn');
-const apiKeyInput = document.getElementById('api-key-input');
-const settingsStatus = document.getElementById('settings-status');
+
 
 // Load saved key
 const savedKey = localStorage.getItem('gemini_api_key');
-if (savedKey) apiKeyInput.value = savedKey;
+if (savedKey && apiKeyInput) apiKeyInput.value = savedKey;
 
-settingsBtn.addEventListener('click', () => {
-    settingsModal.classList.remove('hidden');
-});
 
-closeSettingsBtn.addEventListener('click', () => {
-    settingsModal.classList.add('hidden');
-    settingsStatus.textContent = '';
-});
-
-saveSettingsBtn.addEventListener('click', () => {
-    const key = apiKeyInput.value.trim();
-    if (key.length > 20) { // Simple validation
-        localStorage.setItem('gemini_api_key', key);
-        settingsStatus.textContent = "✅ Chave salva com sucesso!";
-        settingsStatus.style.color = "green";
-    } else {
-        localStorage.removeItem('gemini_api_key'); // Clear if empty/invalid
-        settingsStatus.textContent = "⚠️ Chave removida ou inválida. Usando modo simulação.";
-        settingsStatus.style.color = "#dc3545";
-    }
-
-    // Save PII Filter Preferences
-    const piiFilters = {};
-    document.querySelectorAll('.pii-filter').forEach(checkbox => {
-        piiFilters[checkbox.dataset.piiType] = checkbox.checked;
-    });
-    localStorage.setItem('pii_filters', JSON.stringify(piiFilters));
-
-    settingsStatus.textContent += " Filtros de privacidade salvos!";
-    setTimeout(() => settingsModal.classList.add('hidden'), 1500);
-});
 
 // Load PII Filter Preferences
 function loadPIIFilters() {
@@ -700,134 +849,69 @@ improveTextBtn.addEventListener('click', async () => {
     }
 });
 
-// --- Dashboard Logic ---
-const dashboardBtn = document.getElementById('dashboard-btn');
-const dashboardModal = document.getElementById('dashboard-modal');
-const closeDashboardBtn = document.getElementById('close-dashboard-btn');
-const seedDataBtn = document.getElementById('seed-data-btn');
+// --- Dashboard Logic handled by /admin dedicated page ---
 
-let privacyChart = null;
-let categoryChart = null;
+async function seedDatabase() {
+    if (!confirm("Isso carregará registros reais da amostra e-SIC para o servidor (Simulação de 20 casos). Continuar?")) return;
 
-function renderDashboard() {
-    // 1. Prepare Data
-    const privacyCounts = { 'Público': 0, 'Sigiloso': 0 };
-    const categoryCounts = {};
+    seedDataBtn.disabled = true;
+    seedDataBtn.textContent = "Simulando...";
 
-    db.forEach(item => {
-        // Privacy
-        const p = item.privacy || 'Público';
-        privacyCounts[p] = (privacyCounts[p] || 0) + 1;
+    try {
+        // Load real simulation data
+        const simResponse = await fetch('js/simulation_data.json');
+        if (!simResponse.ok) throw new Error('Falha ao carregar amostras');
+        const simulationData = await simResponse.json();
 
-        // Category (Split > to get main)
-        const c = item.category ? item.category.split('>')[0].trim() : 'Geral';
-        categoryCounts[c] = (categoryCounts[c] || 0) + 1;
-    });
+        let count = 0;
+        const totalToSubmit = 20;
 
-    // 2. Render Privacy Chart
-    const ctxP = document.getElementById('privacy-chart').getContext('2d');
-    if (privacyChart) privacyChart.destroy();
+        for (let i = 0; i < totalToSubmit; i++) {
+            // Pick a random sample from the 400+ samples
+            const sample = simulationData[Math.floor(Math.random() * simulationData.length)];
 
-    privacyChart = new Chart(ctxP, {
-        type: 'pie',
-        data: {
-            labels: Object.keys(privacyCounts),
-            datasets: [{
-                data: Object.values(privacyCounts),
-                backgroundColor: ['#28a745', '#dc3545'], // Green, Red
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom' } }
+            // 1. Classify
+            const classResponse = await fetch('/api/classify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: sample.text })
+            });
+
+            if (!classResponse.ok) continue;
+            const classResult = await classResponse.json();
+
+            // 2. Submit
+            await fetch('/api/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: classResult.id,
+                    text: sample.text,
+                    category: classResult.category || "Geral",
+                    privacy: classResult.privacy_status || "Público",
+                    reason: classResult.reason || ""
+                })
+            });
+
+            count++;
+            seedDataBtn.textContent = `Enviando (${count}/${totalToSubmit})...`;
         }
-    });
 
-    // 3. Render Category Chart
-    const ctxC = document.getElementById('category-chart').getContext('2d');
-    if (categoryChart) categoryChart.destroy();
-
-    categoryChart = new Chart(ctxC, {
-        type: 'bar',
-        data: {
-            labels: Object.keys(categoryCounts),
-            datasets: [{
-                label: 'Demandas',
-                data: Object.values(categoryCounts),
-                backgroundColor: 'rgba(0, 51, 102, 0.7)', // GDF Blue
-                borderColor: 'rgba(0, 51, 102, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-            plugins: { legend: { display: false } }
-        }
-    });
-}
-
-function seedDatabase() {
-    if (!confirm("Isso importará uma amostra de 100 registros do Repositório e-SIC. Continuar?")) return;
-
-    db = [];
-
-    // Realistic e-SIC samples
-    const samples = [
-        { text: "Solicito informações sobre o cronograma de obras da VP 03 no Guará.", cat: "Solicitação > Obras", priv: "Público" },
-        { text: "Buraco perigoso na via principal de Taguatinga Norte, próximo ao mercado.", cat: "Solicitação > Tapa-buraco", priv: "Público" },
-        { text: "Gostaria de denunciar um servidor que está utilizando o carro oficial para fins pessoais na placa JJJ-9999.", cat: "Denúncia > Servidor", priv: "Sigiloso" },
-        { text: "Falta de médicos pediatras na UPA de Ceilândia durante o plantão noturno.", cat: "Reclamação > Saúde", priv: "Público" },
-        { text: "A iluminação pública da quadra 302 do Sudoeste está apagada há 5 dias.", cat: "Solicitação > Iluminação", priv: "Público" },
-        { text: "Gostaria de elogiar o atendimento recebido no Na Hora da Rodoviária.", cat: "Elogio > Atendimento", priv: "Público" },
-        { text: "Solicito dados sobre os gastos com publicidade do governo no ano de 2024.", cat: "Acesso à Informação > Gastos", priv: "Público" },
-        { text: "Denúncia anônima sobre descarte de entulho em área de proteção ambiental no Lago Norte.", cat: "Denúncia > Ambiental", priv: "Sigiloso" },
-        { text: "Minha mãe idosa não consegue agendar consulta com cardiologista pelo sistema.", cat: "Reclamação > Saúde", priv: "Sigiloso" },
-        { text: "Sugestão para criação de ciclofaixas na W3 Sul.", cat: "Sugestão > Mobilidade", priv: "Público" },
-        { text: "O parquinho da SQN 105 está com brinquedos quebrados oferecendo risco.", cat: "Solicitação > Zeladoria", priv: "Público" },
-        { text: "Gostaria de saber o status do meu processo SEI 123456789.", cat: "Solicitação > Processo", priv: "Sigiloso" }
-    ];
-
-    for (let i = 0; i < 100; i++) {
-        const sample = samples[Math.floor(Math.random() * samples.length)];
-        const isVariation = Math.random() > 0.5;
-
-        // Add random variations to text to seem organic
-        let finalText = sample.text;
-        if (isVariation) finalText += ` (Protocolo Ref: ${Math.floor(Math.random() * 9999)})`;
-
-        db.push({
-            id: (20250000 + i).toString(),
-            date: new Date(Date.now() - Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000)).toLocaleString('pt-BR'), // Random date last 30 days
-            text: finalText,
-            type: 'Texto',
-            category: sample.cat,
-            privacy: sample.priv
-        });
+        alert(`Simulação concluída! ${count} registros da amostra e-SIC foram enviados com sucesso.`);
+    } catch (e) {
+        console.error("Seed Error:", e);
+        alert("Erro na simulação: " + e.message);
+    } finally {
+        seedDataBtn.disabled = false;
+        seedDataBtn.textContent = "⚡ Simular Dados (e-SIC)";
+        renderDashboard(); // Refresh
+        if (typeof updateDashboardBadge === 'function') updateDashboardBadge();
     }
-
-    localStorage.setItem('participa_df_db', JSON.stringify(db));
-    renderDashboard();
-    renderSubmissions();
-    alert("Importação da Amostra e-SIC concluída com sucesso! (100 registros processados)");
 }
 
-// Dashboard Events
-if (dashboardBtn) {
-    dashboardBtn.addEventListener('click', () => {
-        renderDashboard();
-        dashboardModal.classList.remove('hidden');
-    });
 
-    closeDashboardBtn.addEventListener('click', () => {
-        dashboardModal.classList.add('hidden');
-    });
 
-    seedDataBtn.addEventListener('click', seedDatabase);
-}
+
 
 if (startCameraBtn) {
     startCameraBtn.addEventListener('click', async () => {

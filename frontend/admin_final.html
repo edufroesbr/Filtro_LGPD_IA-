@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo - Participa DF</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Login Overlay -->
+    <div id="login-overlay" class="auth-overlay">
+        <div class="auth-box">
+            <div style="font-size: 3rem; margin-bottom: 20px;">🔐</div>
+            <h2>Acesso Restrito</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 30px;">Área exclusiva para administradores.</p>
+
+            <div class="input-wrapper" style="padding: 10px; margin-bottom: 20px;">
+                <input type="password" id="admin-password" placeholder="Digite a senha..."
+                    style="width: 100%; border: none; outline: none; font-size: 1rem;">
+            </div>
+
+            <button class="submit-final-btn" style="width: 100%; padding: 12px; font-size: 1rem;"
+                onclick="checkAdminAuth()">Entrar no Painel</button>
+
+            <p id="auth-error" style="color: #dc3545; margin-top: 15px; font-size: 0.9rem; display: none;">
+                Senha incorreta.
+            </p>
+        </div>
+    </div>
+
+    <!-- Official Header -->
+    <header class="official-header">
+        <div class="header-container">
+            <div class="left-logos">
+                <div class="gdf-logo-group">
+                    <img src="https://images.agenciabrasilia.df.gov.br/2020/10/GDF-2023-HORIZONTAL-BRANCA.png"
+                        alt="GDF Logo" class="gdf-crest"
+                        onerror="this.src='https://via.placeholder.com/100x40?text=GDF'">
+                    <div class="separador"></div>
+                    <div class="logo-text">
+                        <span>Governo do</span>
+                        <span>Distrito Federal</span>
+                    </div>
+                </div>
+
+                <div class="participa-logo-container">
+                    <div class="participa-text">Participa <b>DF</b></div>
+                </div>
+            </div>
+
+            <div class="user-area">
+                <span>Administrador</span>
+                <button onclick="window.location.href='/'" title="Sair / Voltar">🚪</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="dashboard-container">
+
+        <div class="dashboard-header">
+            <div class="dashboard-title">
+                <h1>📊 Dashboard de Controle</h1>
+                <p>Monitoramento em tempo real de manifestações e análise de privacidade (Edital 8.1)</p>
+            </div>
+            <div class="action-buttons" style="display: flex; gap: 10px;">
+                <select id="privacy-filter" onchange="loadDashboard()"
+                    style="padding: 10px; border-radius: 8px; border: 1px solid #ccc; margin-right: 10px; font-weight: 600; color: var(--gdf-blue-dark); max-width: 250px;"
+                    title="Filtrar por Categoria de Privacidade">
+                    <option value="Todos">Todos os Status</option>
+
+                    <optgroup label="Status Geral">
+                        <option value="Público">🛡️ Público</option>
+                        <option value="Sigiloso">🔒 Sigiloso (Geral)</option>
+                    </optgroup>
+
+                    <optgroup label="Dados Pessoais (LFPD)">
+                        <option value="Dados Pessoais">👤 Todos os Dados Pessoais</option>
+                        <option value="CPF">CPF</option>
+                        <option value="RG">RG</option>
+                        <option value="E-mail">E-mail</option>
+                        <option value="Telefone">Telefone / Celular</option>
+                        <option value="Endereço">Endereço Residencial</option>
+                        <option value="CNH">CNH</option>
+                    </optgroup>
+
+                    <optgroup label="Dados Bancários">
+                        <option value="Dados Bancários">💰 Todos os Dados Bancários</option>
+                        <option value="Pix">PIX (Chaves / UUID)</option>
+                        <option value="Conta Bancária">Conta Bancária / Agência</option>
+                        <option value="Cartão de Crédito">Cartão de Crédito</option>
+                    </optgroup>
+
+                    <optgroup label="Saúde & Sensíveis">
+                        <option value="Dados de Saúde">🏥 Dados de Saúde (Geral)</option>
+                        <option value="Prontuário Médico">📜 Prontuário Médico</option>
+                        <option value="Dados Sensíveis (Violência Doméstica)">⚠️ Violência Doméstica</option>
+                    </optgroup>
+
+                    <optgroup label="Veículos">
+                        <option value="Dados Veiculares">🚗 Todos os Dados Veiculares</option>
+                        <option value="Placa">Placa de Veículo</option>
+                    </optgroup>
+                </select>
+                <button class="ai-btn" onclick="loadDashboard()">
+                    <span id="refresh-icon">🔄</span> Atualizar
+                </button>
+                <button class="submit-final-btn"
+                    style="padding: 10px 24px; font-size: 0.9rem; background: var(--gdf-blue-dark);"
+                    onclick="downloadCSV()">
+                    📥 Baixar CSV
+                </button>
+            </div>
+        </div>
+
+        <!-- LLM Configuration Section -->
+        <div class="card-config"
+            style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div onclick="togglePanel('llm')"
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0; cursor: pointer;">
+                <h3 style="margin: 0; color: var(--gdf-blue-dark);">🤖 Configuração de Provedores LLM <span
+                        id="llm-toggle-icon" style="font-size: 0.8em; color: #888;">▼</span></h3>
+                <small style="color:#999">v2.2</small>
+            </div>
+
+            <div id="llm-panel" style="display: none; margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
+                <div
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Provedor LLM:</label>
+                        <select id="config-llm-provider" onchange="toggleOllamaUrl()"
+                            title="Selecionar Provedor de Modelo de Linguagem"
+                            style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc;">
+                            <option value="gemini">Google Gemini</option>
+                            <option value="openai">OpenAI (ou Compatível)</option>
+                            <option value="anthropic">Anthropic Claude</option>
+                            <option value="ollama">Ollama (Local)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Modelo:</label>
+                        <input type="text" id="config-llm-model" placeholder="Ex: gemini-2.0-flash, gpt-4o, etc."
+                            title="Nome técnico do modelo (ex: gpt-4o)"
+                            style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc;">
+                    </div>
+                    <div id="gemini-key-container" style="display: none;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Gemini API Key:</label>
+                        <input type="password" id="config-gemini-key" placeholder="API Key do Google"
+                            title="Chave API para o Google Gemini"
+                            style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc;">
+                    </div>
+                    <div id="openai-key-container" style="display: none;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">OpenAI API Key:</label>
+                        <input type="password" id="config-openai-key" placeholder="sk-..." title="Chave API para OpenAI"
+                            style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc;">
+                    </div>
+                    <div id="anthropic-key-container" style="display: none;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Anthropic API Key:</label>
+                        <input type="password" id="config-anthropic-key" placeholder="sk-ant-..."
+                            title="Chave API para Anthropic"
+                            style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc;">
+                    </div>
+                    <div id="ollama-url-container" style="display: none;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">URL do Ollama:</label>
+                        <input type="text" id="config-ollama-url" placeholder="http://localhost:11434"
+                            title="URL local do servidor Ollama"
+                            style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc;">
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <button onclick="saveConfig(event)"
+                        style="padding: 10px 24px; background: var(--gdf-blue-dark); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                        💾 Salvar Alterações
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Privacy Configuration Section -->
+        <div class="card-config"
+            style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <div onclick="togglePanel('privacy')"
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0; cursor: pointer;">
+                <h3 style="margin: 0; color: var(--gdf-blue-dark);">⚙️ Configuração de Filtros de Dados Pessoais <span
+                        id="privacy-toggle-icon" style="font-size: 0.8em; color: #888;">▼</span></h3>
+                <small style="color:#999">LGPD</small>
+            </div>
+
+            <div id="privacy-panel"
+                style="display: none; margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
+                <div id="config-loading" style="text-align: center; color: #666; margin-bottom: 15px;">Carregando
+                    configurações...</div>
+                <div id="config-form" style="display: none; margin-bottom: 20px;">
+                    <!-- Checkboxes will be injected here -->
+                </div>
+                <div style="text-align: right;">
+                    <button onclick="saveConfig(event)"
+                        style="padding: 10px 24px; background: var(--gdf-green); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                        💾 Salvar Alterações
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Total de Manifestações</h3>
+                <div class="value" id="total-count">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Públicas</h3>
+                <div class="value" id="public-count" style="color: var(--gdf-green);">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Sigilosas</h3>
+                <div class="value" id="sensitive-count" style="color: #dc3545;">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Taxa de Sigilo</h3>
+                <div class="value" id="detection-rate" style="color: var(--gdf-blue-light);">0%</div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3>Privacidade das Demandas</h3>
+                <div class="chart-container">
+                    <canvas id="privacy-chart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3>Categorias Mais Frequentes</h3>
+                <div class="chart-container">
+                    <canvas id="category-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Logs Table -->
+        <div class="data-table-container">
+            <div class="table-header-panel">
+                <h3>📋 Últimos Registros</h3>
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Data</th>
+                            <th>Tipo</th>
+                            <th>Categoria</th>
+                            <th>Status (Privacidade)</th>
+                            <th>Trecho da Manifestação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logs-table">
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                                Carregando dados...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+
+        let privacyChart = null;
+        let categoryChart = null;
+
+        // Authentication Logic
+        function checkAdminAuth() {
+            const pwd = document.getElementById('admin-password').value;
+            if (pwd === 'admin123') {
+                sessionStorage.setItem('admin_auth', 'true');
+                document.getElementById('login-overlay').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('login-overlay').style.display = 'none';
+                    loadDashboard();
+                    loadConfig(); // Load config immediately after login
+                    // Auto refresh every 3s (Live Mode)
+                    setInterval(loadDashboard, 3000);
+                }, 500);
+            } else {
+                document.getElementById('auth-error').style.display = 'block';
+            }
+        }
+
+        document.getElementById('admin-password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkAdminAuth();
+        });
+
+        window.addEventListener('load', () => {
+
+            // Check if running on file:// protocol
+            if (window.location.protocol === 'file:') {
+                alert("⚠️ ATENÇÃO: Você abriu o arquivo localmente (file://).\n\nPara que o sistema funcione (API, filtros, configurações), você DEVE acessar via: http://localhost:8000/admin_final.html");
+            }
+
+            if (sessionStorage.getItem('admin_auth') === 'true') {
+                document.getElementById('login-overlay').style.display = 'none';
+                loadDashboard();
+                loadConfig(); // Load config immediately on startup
+                // Ensure interval is set on reload if auth exists
+                setInterval(loadDashboard, 3000);
+            }
+        });
+
+        // --- Configuration Logic ---
+        // (This part matches the previous implementation, continuing...)
+
+        // ... (rest of the file is managed by surrounding context, ensuring consistency)
+
+        const PII_TYPES = [
+            { id: "cpf", label: "CPF" },
+            { id: "rg", label: "RG" },
+            { id: "email", label: "E-mail" },
+            { id: "phone", label: "Telefone" },
+            { id: "address", label: "Endereço" },
+            { id: "bank_account", label: "Conta Bancária" },
+            { id: "credit_card", label: "Cartão de Crédito" },
+            { id: "pix", label: "Chave PIX" },
+            { id: "medical_record", label: "Prontuário Médico" },
+            { id: "patient_data", label: "Dados de Paciente" },
+            { id: "vehicle_plate", label: "Placa de Veículo" }
+            // Note: simplified for display, backend maps ids
+        ];
+
+        async function loadConfig() {
+            console.log("Loading config...");
+            const loadingEl = document.getElementById('config-loading');
+            const formEl = document.getElementById('config-form');
+
+            loadingEl.style.display = 'block';
+            loadingEl.innerHTML = 'Carregando configurações... <span style="font-size:0.8em">⏳</span>';
+            formEl.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/config', {
+                    headers: { 'X-Admin-Password': 'admin123' },
+                    cache: 'no-store'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erro ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log("Config loaded:", data);
+
+                // Load LLM Settings
+                document.getElementById('config-llm-provider').value = data.llm_provider || 'gemini';
+                document.getElementById('config-llm-model').value = data.llm_model || 'gemini-2.0-flash';
+                document.getElementById('config-ollama-url').value = data.ollama_url || 'http://localhost:11434';
+                document.getElementById('config-gemini-key').value = data.gemini_api_key || '';
+                document.getElementById('config-openai-key').value = data.openai_api_key || '';
+                document.getElementById('config-anthropic-key').value = data.anthropic_api_key || '';
+                toggleOllamaUrl();
+
+                const enabled = new Set(data.enabled_pii_types || []);
+
+                formEl.innerHTML = '';
+                // Use default block display for groups, instead of grid
+                formEl.style.display = 'block';
+
+                // Define Macro Categories for Configuration
+                const macroGroups = [
+                    { id: "macro_personal", label: "👤 Dados Pessoais (CPF, RG, Email, Endereço, etc.)", icon: "👤" },
+                    { id: "macro_banking", label: "💰 Dados Bancários (Conta, Cartão, PIX)", icon: "💰" },
+                    { id: "macro_vehicle", label: "🚗 Dados Veiculares (Placas)", icon: "🚗" },
+                    { id: "macro_health", label: "🏥 Dados de Saúde (Prontuários, Pacientes)", icon: "🏥" },
+                    { id: "macro_sensible", label: "⚠️ Dados Sensíveis (Violência Doméstica)", icon: "⚠️" }
+                ];
+
+                macroGroups.forEach(group => {
+                    const div = document.createElement('div');
+                    div.style.cssText = "display: flex; align-items: center; gap: 10px; padding: 12px; background: #f8f9fa; border-radius: 8px; margin-bottom: 10px;";
+
+                    const isChecked = enabled.size === 0 || enabled.has(group.id) ? 'checked' : '';
+
+                    div.innerHTML = `
+                        <input type="checkbox" id="pii-${group.id}" value="${group.id}" ${isChecked} style="transform: scale(1.2);">
+                        <label for="pii-${group.id}" style="cursor: pointer; font-weight: 600; color: var(--gdf-blue-dark);">
+                            ${group.label}
+                        </label>
+                    `;
+                    formEl.appendChild(div);
+                });
+
+                loadingEl.style.display = 'none';
+
+            } catch (e) {
+                console.error("Error loading config:", e);
+                loadingEl.style.display = 'block';
+                loadingEl.innerHTML = `
+                    <div style="color: #dc3545; background: #fff5f5; padding: 10px; border-radius: 6px; border: 1px solid #f5c6cb;">
+                        <strong>Erro ao carregar:</strong> ${e.message}<br>
+                        <button onclick="loadConfig()" style="margin-top:5px; padding: 5px 10px; cursor: pointer;">🔄
+                            Tentar Novamente</button>
+                    </div>`;
+            }
+        }
+
+        function toggleGroup(groupTitle, state) {
+            const container = document.querySelector(`div[data-group-name="${groupTitle}"]`);
+            if (container) {
+                const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+                checkboxes.forEach(cb => cb.checked = state);
+            }
+        }
+
+        function formatLabel(type) {
+            const map = {
+                "cpf": "CPF", "rg": "RG", "cnh": "CNH",
+                "passport": "Passaporte", "voter_id": "Título de Eleitor",
+                "birth_certificate": "Certidão Nascimento",
+                "email": "E-mail", "phone": "Telefone",
+                "address": "Endereço", "cep": "CEP",
+                "bank_account": "Conta Bancária", "credit_card": "Cartão de Crédito",
+                "pix": "PIX",
+                "plate_old": "Placa Antiga", "plate_mercosul": "Placa Mercosul",
+                "medical_record": "Prontuário Médico", "patient_data": "Dados Paciente"
+            };
+            return map[type] || type;
+        }
+
+        async function saveConfig(event) {
+            const checkboxes = document.querySelectorAll('#config-form input[type="checkbox"]');
+            const enabled = [];
+            checkboxes.forEach(cb => {
+                if (cb.checked) enabled.push(cb.value);
+            });
+
+            const llmProvider = document.getElementById('config-llm-provider').value;
+            const llmModel = document.getElementById('config-llm-model').value;
+            const ollamaUrl = document.getElementById('config-ollama-url').value;
+            const geminiKey = document.getElementById('config-gemini-key').value;
+            const openaiKey = document.getElementById('config-openai-key').value;
+            const anthropicKey = document.getElementById('config-anthropic-key').value;
+
+            const btn = event.target; // Capture button
+            const originalText = btn.textContent;
+            btn.textContent = "Salvando...";
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Admin-Password': 'admin123'
+                    },
+                    body: JSON.stringify({
+                        enabled_pii_types: enabled,
+                        llm_provider: llmProvider,
+                        llm_model: llmModel,
+                        ollama_url: ollamaUrl,
+                        gemini_api_key: geminiKey,
+                        openai_api_key: openaiKey,
+                        anthropic_api_key: anthropicKey
+                    })
+                });
+
+                if (response.ok) {
+                    alert('Configurações salvas e aplicadas com sucesso!');
+                } else {
+                    const err = await response.text();
+                    alert('Erro ao salvar: ' + err);
+                }
+            } catch (e) {
+                alert('Erro de conexão: ' + e.message);
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // Dashboard Logic
+        async function loadDashboard() {
+            const refreshIcon = document.getElementById('refresh-icon');
+            if (refreshIcon) refreshIcon.style.animation = 'spin 1s linear infinite';
+
+            try {
+                const filterEl = document.getElementById('privacy-filter');
+                const filter = filterEl ? filterEl.value : 'Todos';
+
+                const response = await fetch(`/api/dashboard-data?privacy_filter=${filter}`, {
+                    headers: { 'X-Admin-Password': 'admin123' }
+                });
+
+                if (!response.ok) throw new Error('Acesso negado ou erro no servidor');
+                const data = await response.json();
+
+                // 1. KPIs
+                document.getElementById('total-count').textContent = data.total_count;
+                document.getElementById('public-count').textContent = data.privacy_counts['Público'] || 0;
+                document.getElementById('sensitive-count').textContent = data.privacy_counts['Sigiloso'] || 0;
+
+                const rate = data.total_count > 0
+                    ? Math.round(((data.privacy_counts['Sigiloso'] || 0) / data.total_count) * 100)
+                    : 0;
+                document.getElementById('detection-rate').textContent = rate + '%';
+
+                // 2. Privacy Chart (Doughnut)
+                const ctxP = document.getElementById('privacy-chart').getContext('2d');
+                if (privacyChart) privacyChart.destroy();
+
+                privacyChart = new Chart(ctxP, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Público', 'Sigiloso'],
+                        datasets: [{
+                            data: [
+                                data.privacy_counts['Público'] || 0,
+                                data.privacy_counts['Sigiloso'] || 0
+                            ],
+                            backgroundColor: ['#00995D', '#dc3545'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        aspectRatio: 2,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 10,
+                                    font: { size: 11 }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // 3. Category Chart (Bar) with distinct colors per category
+                const ctxC = document.getElementById('category-chart').getContext('2d');
+                if (categoryChart) categoryChart.destroy();
+
+                // Define color palette for macro categories
+                const CATEGORY_COLORS = {
+                    'Público': '#28a745',           // Verde (Sucesso)
+                    'Dados Pessoais': '#fd7e14',    // Laranja Escuro
+                    'Dados de Saúde': '#ef4444',    // Vermelho
+                    'Prontuário Médico': '#b91c1c', // Vermelho Escuro
+                    'Dados Bancários': '#0d6efd',   // Azul
+                    'Dados Veiculares': '#6f42c1',  // Roxo
+                    'Dados Sensíveis (Violência Doméstica)': '#7f1d1d' // Marrom / Vinho
+                };
+
+                const categories = Object.keys(data.category_counts);
+                const backgroundColors = categories.map(cat => CATEGORY_COLORS[cat] || '#6b7280');
+
+                categoryChart = new Chart(ctxC, {
+                    type: 'bar',
+                    data: {
+                        labels: categories,
+                        datasets: [{
+                            label: 'Manifestações',
+                            data: Object.values(data.category_counts),
+                            backgroundColor: backgroundColors,
+                            borderRadius: 4,
+                            maxBarThickness: 40
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        aspectRatio: 2,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { display: false },
+                                ticks: {
+                                    font: { size: 11 },
+                                    precision: 0
+                                }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: {
+                                    font: { size: 11 }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+
+                // 4. Recent Logs Table
+                const tbody = document.getElementById('logs-table');
+                tbody.innerHTML = '';
+
+                if (data.recent_logs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">Nenhum registro encontrado</td></tr>';
+                } else {
+                    data.recent_logs.forEach(log => {
+                        const isSensitive = log.privacy === 'Sigiloso';
+                        const statusColor = isSensitive ? '#dc3545' : '#28a745';
+                        const statusBg = isSensitive ? '#fff5f5' : '#ebfbee';
+
+                        // Format Snippet (truncate)
+                        let snippet = log.text_snippet || '';
+
+                        // Safety escape
+                        const safeSnippet = snippet.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+                        if (snippet.length > 60) snippet = safeSnippet.substring(0, 60) + '...';
+                        else snippet = safeSnippet;
+
+                        // Category Color Logic
+                        let catBg = '#e3f2fd'; // Default Blue
+                        let catColor = '#0d47a1';
+
+                        if (log.category && log.category.toUpperCase().includes('PRONTO PARA')) {
+                            catBg = '#d4edda'; // Green
+                            catColor = '#155724';
+                        } else if (log.category && log.category.toUpperCase().includes('IDENTIFICADO')) {
+                            catBg = '#fff3cd'; // Yellow
+                            catColor = '#856404';
+                        }
+
+                        const tr = document.createElement('tr');
+                        // Use encodeURIComponent for the robust view function call
+                        const encodedText = encodeURIComponent(log.text_snippet || '');
+
+                        tr.innerHTML = `
+                            <td><code style="color: #666;">${log.id.substring(0, 8)}</code></td>
+                            <td>${new Date(log.timestamp).toLocaleDateString('pt-BR')} <br><small style="color:#999">${new Date(log.timestamp).toLocaleTimeString('pt-BR')}</small></td>
+                            <td>${log.type}</td>
+                            <td>
+                                <span class="submission-badge" style="background: ${catBg}; color: ${catColor}; border: 1px solid ${catColor}20; padding: 4px 12px; border-radius: 4px; font-size: 0.85rem; display: inline-block;">
+                                    ${log.category}
+                                </span>
+                            </td>
+                            <td>
+                                <span style="background: ${statusBg}; color: ${statusColor}; padding: 4px 12px; border-radius: 20px; font-weight: 700; font-size: 0.8rem; border: 1px solid ${statusColor}20;">
+                                    ${log.privacy}
+                                </span>
+                            </td>
+                            <td>
+                                    <button class="view-btn" onclick="openTextModal(decodeURIComponent('${encodedText}'))" style="background:none; border:none; cursor:pointer; font-size:1.1rem;" title="Ver Inteiro Teor">
+                                        👁️
+                                    </button>
+                                </div>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+
+            } catch (err) {
+                console.error("Dashboard error:", err);
+            } finally {
+                if (refreshIcon) refreshIcon.style.animation = 'none';
+            }
+        }
+
+        async function downloadCSV() {
+            try {
+                const response = await fetch('/data/classifications.csv', {
+                    headers: { 'X-Admin-Password': 'admin123' }
+                });
+                if (!response.ok) throw new Error('Falha ao baixar CSV');
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `participa_df_dados_${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            } catch (e) {
+                alert('Erro ao baixar CSV: ' + e.message);
+            }
+        }
+
+        // --- Text Modal Logic ---
+        function openTextModal(text) {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0,0,0,0.6); z-index: 3000;
+                display: flex; justify-content: center; align-items: center;
+                backdrop-filter: blur(4px);
+            `;
+
+            // Safe Text for Display
+            const safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+            modal.innerHTML = `
+                <div style="background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); max-height: 80vh; overflow-y: auto;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                        <h3 style="margin: 0; color: var(--gdf-blue-dark);">📄 Inteiro Teor da Manifestação</h3>
+                        <button onclick="this.closest('div').parentElement.parentElement.remove()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">✕</button>
+                    </div>
+                    <p style="white-space: pre-wrap; line-height: 1.6; color: #333;">${safeText}</p>
+                    <div style="text-align: right; margin-top: 20px;">
+                        <button onclick="this.closest('div').parentElement.parentElement.remove()" 
+                            style="padding: 10px 20px; background: var(--gdf-blue-dark); color: white; border: none; border-radius: 6px; cursor: pointer;">
+                            Fechar
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        // Add CSS Animation for spinner
+        const styleSheet = document.createElement("style");
+        styleSheet.innerText = `
+            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        `;
+        document.head.appendChild(styleSheet);
+
+        function togglePanel(panelId) {
+            const panel = document.getElementById(panelId + '-panel');
+            const icon = document.getElementById(panelId + '-toggle-icon');
+            if (panel && icon) {
+                const isHidden = panel.style.display === 'none';
+                panel.style.display = isHidden ? 'block' : 'none';
+                icon.innerHTML = isHidden ? '▲' : '▼';
+
+                // Load config when first opening either panel
+                if (isHidden && (panelId === 'privacy' && document.getElementById('config-form').innerHTML.trim() === '' || panelId === 'llm')) {
+                    loadConfig();
+                }
+            }
+        }
+
+        function toggleOllamaUrl() {
+            const provider = document.getElementById('config-llm-provider').value;
+            const geminiContainer = document.getElementById('gemini-key-container');
+            const openaiContainer = document.getElementById('openai-key-container');
+            const anthropicContainer = document.getElementById('anthropic-key-container');
+            const ollamaContainer = document.getElementById('ollama-url-container');
+
+            if (geminiContainer) geminiContainer.style.display = (provider === 'gemini') ? 'block' : 'none';
+            if (openaiContainer) openaiContainer.style.display = (provider === 'openai') ? 'block' : 'none';
+            if (anthropicContainer) anthropicContainer.style.display = (provider === 'anthropic') ? 'block' : 'none';
+            if (ollamaContainer) ollamaContainer.style.display = (provider === 'ollama') ? 'block' : 'none';
+        }
+
+    </script>
+</body>
+
+</html>

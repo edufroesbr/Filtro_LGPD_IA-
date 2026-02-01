@@ -1,0 +1,28 @@
+{
+    "enabled_pii_types": [
+        "cpf",
+        "rg",
+        "cnh",
+        "passport",
+        "voter_id",
+        "birth_certificate",
+        "email",
+        "phone",
+        "cep",
+        "address",
+        "bank_account",
+        "credit_card",
+        "pix",
+        "plate_old",
+        "plate_mercosul",
+        "medical_record",
+        "patient_data",
+        "family_dispute"
+    ],
+    "llm_provider": "gemini",
+    "llm_model": "gemini-2.0-flash",
+    "ollama_url": "http://localhost:11434",
+    "gemini_api_key": "",
+    "openai_api_key": "",
+    "anthropic_api_key": ""
+}

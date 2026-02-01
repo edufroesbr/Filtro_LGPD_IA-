@@ -1,75 +1,337 @@
 import warnings
 # Suppress FutureWarning from deprecated google.generativeai
-warnings.filterwarnings('ignore', category=FutureWarning, module='google.generativeai')
+warnings.filterwarnings('ignore', category=FutureWarning)
+warnings.filterwarnings('ignore', category=UserWarning, module='google.generativeai')
 
-import google.generativeai as genai
-import json
 import os
+import json
+import re
+import uuid
+import datetime
+from abc import ABC, abstractmethod
+from typing import List, Optional, Dict, Any
 
-# Path to categories file from backend directory
-# backend/ai_service.py -> ../data/categories.json
+# Optional imports for providers
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
+
+try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None
+
+try:
+    import anthropic
+except ImportError:
+    anthropic = None
+
+try:
+    import httpx
+except ImportError:
+    httpx = None
+
+# Paths
 DATA_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'categories.json')
+CONFIG_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'system_config.json')
+
+# --- Utilities ---
 
 def load_categories():
     try:
-        with open(DATA_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)['categories']
-    except FileNotFoundError:
-        print(f"Error: Categories file not found at {DATA_FILE}")
-        return []
+        if os.path.exists(DATA_FILE):
+            with open(DATA_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)['categories']
+    except Exception as e:
+        print(f"Error loading categories: {e}")
+    return []
 
-def classify_text(text):
-    """
-    Classifies text using Google Gemini if API key is present,
-    otherwise falls back to keyword matching.
-    """
-    api_key = os.environ.get("GEMINI_API_KEY")
-    categories = load_categories()
+def get_macro_category(detected_pii):
+    """Maps detected PII to macro categories for better visualization"""
+    personal_data = ["CPF", "RG", "Email", "Telefone", "Endereço", "CEP", "CNH", 
+                     "Passaporte", "Título de Eleitor", "Certidão de Nascimento"]
+    banking_data = ["Conta Bancária", "PIX (UUID)", "Cartão de Crédito"]
+    health_data = ["Prontuário Médico", "Dados de Paciente"]
+    vehicle_data = ["Placa de Veículo (antiga)", "Placa de Veículo (Mercosul)"]
+    
+    for pii in detected_pii:
+        if pii == "Prontuário Médico":
+            return "Prontuário Médico"
+    
+    for pii in detected_pii:
+        if pii == "Conflitos Familiares":
+            return "Dados Sensíveis (Violência Doméstica)"
 
-    if api_key:
-        try:
+    for pii in detected_pii:
+        if pii in health_data:
+            return "Dados de Saúde"
+    
+    for pii in detected_pii:
+        if pii in banking_data:
+            return "Dados Bancários"
+    
+    for pii in detected_pii:
+        if pii in personal_data:
+            return "Dados Pessoais"
+    
+    for pii in detected_pii:
+        if pii in vehicle_data:
+            return "Dados Veiculares"
+    
+    return "Público"
+
+# --- Provider Base Class ---
+
+class LLMProvider(ABC):
+    @abstractmethod
+    def classify_text(self, text: str, categories: List[Dict]) -> Optional[Dict]:
+        pass
+
+    @abstractmethod
+    def analyze_privacy(self, text: str, enabled_list: str) -> Dict[str, Any]:
+        pass
+
+# --- Gemini Provider (Current) ---
+
+class GeminiProvider(LLMProvider):
+    def __init__(self, api_key: str, model_name: str = "gemini-2.0-flash"):
+        self.api_key = api_key
+        self.model_name = model_name
+        if genai:
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-2.0-flash')
-            
-            # Construct a clear prompt with valid categories
+
+    def classify_text(self, text: str, categories: List[Dict]) -> Optional[Dict]:
+        if not genai: return None
+        try:
+            model = genai.GenerativeModel(self.model_name)
             cat_list = ", ".join([f"{c['id']} ({', '.join(c['subcategories'])})" for c in categories])
             prompt = f"""
             Classify the following text into one of these categories: {cat_list}.
             Return JSON format: {{"id": "Category", "subcategory": "Subcategory"}}.
             Text: "{text}"
             """
-            
             response = model.generate_content(prompt)
-            # Simple JSON extraction (could be more robust)
-            content = response.text.strip()
-            # Clean up potential markdown code blocks
-            if content.startswith("```json"):
-                content = content[7:-3].strip()
-            elif content.startswith("```"):
-                content = content[3:-3].strip()
-                
-            data = json.loads(content)
-            
-            # Match with loaded categories to return full object
+            return self._parse_classification(response.text, categories)
+        except Exception as e:
+            print(f"Gemini Error: {e}")
+            return None
+
+    def analyze_privacy(self, text: str, enabled_list: str) -> Dict[str, Any]:
+        if not genai: return {"error": "Library not installed"}
+        try:
+            model = genai.GenerativeModel(self.model_name)
+            prompt = self._get_privacy_prompt(text, enabled_list)
+            response = model.generate_content(prompt)
+            return self._parse_json(response.text)
+        except Exception as e:
+            print(f"Gemini Privacy Error: {e}")
+            return {"error": str(e)}
+
+    def _parse_classification(self, content: str, categories: List[Dict]) -> Optional[Dict]:
+        data = self._parse_json(content)
+        if not data: return None
+        for cat in categories:
+            if cat['id'] == data.get('id'):
+                result = cat.copy()
+                sub = data.get('subcategory')
+                result['selected_subcategory'] = sub if sub in cat['subcategories'] else cat['subcategories'][0]
+                return result
+        return None
+
+    def _parse_json(self, content: str) -> Dict:
+        content = content.strip()
+        if content.startswith("```json"): content = content[7:-3].strip()
+        elif content.startswith("```"): content = content[3:-3].strip()
+        try:
+            return json.loads(content)
+        except:
+            return {}
+
+    def _get_privacy_prompt(self, text, enabled_list):
+        return f"""
+        Analyze the following text for Personal Identifiable Information (PII) or sensitive personal contexts.
+        Strictly follow the Brazilian LGPD and Access to Information Law standards.
+
+        **IMPORTANT**: Only detect and report the following PII types: {enabled_list}
+        Ignore any other types of PII that are not in this list.
+
+        Criteria for 'Sensitive' (Sigiloso):
+        - Identity Documents: CPF, RG, CNH, Passaporte, Título Eleitor, Certidões.
+        - Contact Info: Email, Telefone, Endereço, CEP.
+        - Financial Data: Conta Bancária, Cartão de Crédito, Chave PIX.
+        - Vehicles: Placas.
+        - Health & Specifics: Prontuário Médico, Dados de Paciente, Violência Doméstica.
+
+        Return JSON:
+        {{
+            "is_sensitive": boolean, 
+            "privacy_status": "Sigiloso" | "Público",
+            "reason": "Short explanation (PT-BR)",
+            "detected_pii": ["List ONLY the enabled types detected"]
+        }}
+        Text: "{text}"
+        """
+
+# --- OpenAI Provider (and DeepSeek) ---
+
+class OpenAIProvider(LLMProvider):
+    def __init__(self, api_key: str, model_name: str = "gpt-4o", base_url: str = None):
+        self.client = OpenAI(api_key=api_key, base_url=base_url) if OpenAI else None
+        self.model_name = model_name
+
+    def classify_text(self, text: str, categories: List[Dict]) -> Optional[Dict]:
+        if not self.client: return None
+        try:
+            cat_list = ", ".join([f"{c['id']} ({', '.join(c['subcategories'])})" for c in categories])
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=[{"role": "user", "content": f"Classify into JSON {{\"id\": \"Cat\", \"subcategory\": \"Sub\"}} using categories: {cat_list}\nText: {text}"}],
+                response_format={"type": "json_object"}
+            )
+            data = json.loads(response.choices[0].message.content)
             for cat in categories:
                 if cat['id'] == data.get('id'):
-                    # Create a copy to attach the specific matched subcategory
-                    result = cat.copy()
-                    # Determine subcategory (simple match or default)
+                    res = cat.copy()
                     sub = data.get('subcategory')
-                    if sub in cat['subcategories']:
-                        result['selected_subcategory'] = sub
-                    else:
-                        result['selected_subcategory'] = cat['subcategories'][0]
-                    return result
-
+                    res['selected_subcategory'] = sub if sub in cat['subcategories'] else cat['subcategories'][0]
+                    return res
         except Exception as e:
-            print(f"Gemini API Error: {e}")
-            # Fallback to keywords
+            print(f"OpenAI Error: {e}")
+        return None
 
-    # --- Fallback: Keyword Matching ---
-    text = text.lower()
+    def analyze_privacy(self, text: str, enabled_list: str) -> Dict[str, Any]:
+        if not self.client: return {"error": "Library not installed"}
+        try:
+            prompt = GeminiProvider._get_privacy_prompt(None, text, enabled_list)
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=[{"role": "user", "content": prompt}],
+                response_format={"type": "json_object"}
+            )
+            return json.loads(response.choices[0].message.content)
+        except Exception as e:
+            return {"error": str(e)}
+
+# --- Anthropic Provider ---
+
+class AnthropicProvider(LLMProvider):
+    def __init__(self, api_key: str, model_name: str = "claude-3-5-sonnet-20240620"):
+        self.client = anthropic.Anthropic(api_key=api_key) if anthropic else None
+        self.model_name = model_name
+
+    def classify_text(self, text: str, categories: List[Dict]) -> Optional[Dict]:
+        if not self.client: return None
+        try:
+            cat_list = ", ".join([f"{c['id']} ({', '.join(c['subcategories'])})" for c in categories])
+            prompt = f"Classify this text into one of these categories: {cat_list}. Return ONLY JSON: {{\"id\": \"Category\", \"subcategory\": \"Subcategory\"}}.\nText: {text}"
+            message = self.client.messages.create(
+                model=self.model_name, max_tokens=1000,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            content = message.content[0].text
+            data = json.loads(content[content.find('{'):content.rfind('}')+1])
+            for cat in categories:
+                if cat['id'] == data.get('id'):
+                    res = cat.copy()
+                    sub = data.get('subcategory')
+                    res['selected_subcategory'] = sub if sub in cat['subcategories'] else cat['subcategories'][0]
+                    return res
+        except: return None
+        return None
+
+    def analyze_privacy(self, text: str, enabled_list: str) -> Dict[str, Any]:
+        if not self.client: return {"error": "Library not installed"}
+        try:
+            prompt = GeminiProvider._get_privacy_prompt(None, text, enabled_list) + "\nReturn ONLY JSON."
+            message = self.client.messages.create(
+                model=self.model_name, max_tokens=1000,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            content = message.content[0].text
+            return json.loads(content[content.find('{'):content.rfind('}')+1])
+        except Exception as e:
+            return {"error": str(e)}
+
+# --- Ollama Provider ---
+
+class OllamaProvider(LLMProvider):
+    def __init__(self, model_name: str = "llama3", base_url: str = "http://localhost:11434"):
+        self.model_name = model_name
+        self.base_url = f"{base_url}/api/generate"
+
+    def classify_text(self, text: str, categories: List[Dict]) -> Optional[Dict]:
+        try:
+            cat_list = ", ".join([f"{c['id']} ({', '.join(c['subcategories'])})" for c in categories])
+            prompt = f"Classify into JSON {{\"id\": \"Cat\", \"subcategory\": \"Sub\"}} using: {cat_list}\nText: {text}"
+            response = httpx.post(self.base_url, json={"model": self.model_name, "prompt": prompt, "stream": False, "format": "json"})
+            data = response.json()
+            result_json = json.loads(data['response'])
+            for cat in categories:
+                if cat['id'] == result_json.get('id'):
+                    res = cat.copy()
+                    sub = result_json.get('subcategory')
+                    res['selected_subcategory'] = sub if sub in cat['subcategories'] else cat['subcategories'][0]
+                    return res
+        except: return None
+        return None
+
+    def analyze_privacy(self, text: str, enabled_list: str) -> Dict[str, Any]:
+        try:
+            prompt = GeminiProvider._get_privacy_prompt(None, text, enabled_list)
+            response = httpx.post(self.base_url, json={"model": self.model_name, "prompt": prompt, "stream": False, "format": "json"})
+            return json.loads(response.json()['response'])
+        except Exception as e:
+            return {"error": str(e)}
+
+# --- Factory & Fallbacks ---
+
+class ProviderFactory:
+    @staticmethod
+    def get_provider() -> Optional[LLMProvider]:
+        config = {}
+        if os.path.exists(CONFIG_FILE):
+            try:
+                with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+            except: pass
+        
+        provider_type = config.get("llm_provider", "gemini")
+        model_name = config.get("llm_model")
+        
+        if provider_type == "gemini":
+            key = config.get("gemini_api_key") or os.environ.get("GEMINI_API_KEY")
+            if key: return GeminiProvider(key, model_name or "gemini-2.0-flash")
+        
+        elif provider_type == "openai":
+            key = config.get("openai_api_key") or os.environ.get("OPENAI_API_KEY")
+            if key: return OpenAIProvider(key, model_name or "gpt-4o")
+            
+        elif provider_type == "anthropic":
+            key = config.get("anthropic_api_key") or os.environ.get("ANTHROPIC_API_KEY")
+            if key: return AnthropicProvider(key, model_name or "claude-3-5-sonnet-20240620")
+            
+        elif provider_type == "ollama":
+            return OllamaProvider(model_name or "llama3", config.get("ollama_url", "http://localhost:11434"))
+
+        # Last resort: Try Gemini if env var exists even if not in config
+        key = os.environ.get("GEMINI_API_KEY")
+        if key: return GeminiProvider(key)
+        
+        return None
+
+# --- Main Functions (Preserving Interface) ---
+
+def classify_text(text):
+    categories = load_categories()
+    provider = ProviderFactory.get_provider()
     
+    if provider:
+        result = provider.classify_text(text, categories)
+        if result: return result
+        
+    # Fallback: Keyword Matching
+    text_lower = text.lower()
     keywords = {
         "denuncia": ["roubo", "corrupção", "ilegal", "desvio", "assédio", "propina", "abuso"],
         "reclamacao": ["demora", "fila", "ruim", "quebrado", "falta", "mal atendido", "grosseiro"],
@@ -78,190 +340,67 @@ def classify_text(text):
         "solicitacao": ["conserto", "luz", "buraco", "poda", "lixo", "asfalto", "sinalização"],
         "informacao": ["telefone", "onde", "quando", "horário", "documento", "como", "endereço"]
     }
-
     best_match = None
     max_score = 0
-
     for cat_id, words in keywords.items():
-        score = sum(1 for w in words if w in text)
+        score = sum(1 for w in words if w in text_lower)
         if score > max_score:
             max_score = score
             best_match = cat_id
-            
+    if best_match:
+        for cat in categories:
+            if cat['id'] == best_match:
+                res = cat.copy()
+                res['selected_subcategory'] = cat['subcategories'][0]
+                return res
     return None
 
 def analyze_privacy(text, enabled_pii_types=None):
-    """
-    Analyzes text for PII (Personal Identifiable Information) compliance
-    according to Edital 8.1 (Public vs Sensitive).
-    
-    Args:
-        text: The text to analyze
-        enabled_pii_types: Optional list of enabled PII type IDs from user config
-    """
-    api_key = os.environ.get("GEMINI_API_KEY")
-    
-    # Default Safe Response (Fall-back to Sensitive if unsure)
-    default_response = {
-        "is_sensitive": True,
-        "privacy_status": "Sigiloso",
-        "reason": "Análise manual necessária (IA Offline ou Indecisa)",
-        "detected_pii": []
-    }
-    
-    # Map of PII type IDs to pattern info
     pii_pattern_map = {
-        # Documents
         "cpf": (r'\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b', "CPF"),
         "rg": (r'\b\d{1,2}\.?\d{3}\.?\d{3}-?[0-9X]\b', "RG"),
-        "cnh": (r'\b\d{11}\b', "CNH"),
-        "passport": (r'\b[A-Z]{2}\d{6}\b', "Passaporte"),
-        "voter_id": (r'\b\d{12}\b', "Título de Eleitor"),
-        "birth_certificate": (r'\b\d{6}\s\d{2}\s\d{2}\s\d{4}\s\d\s\d{5}\b', "Certidão de Nascimento"),
-        
-        # Contact Info
         "email": (r'[\w.-]+@[\w.-]+\.\w+', "Email"),
-        "phone": (r'\(?\d{2}\)?\s?\d{4,5}-?\d{4}', "Telefone"),
-        "cep": (r'\b\d{5}-?\d{3}\b', "CEP"),
-        "address": (r'\b(?:Rua|Av\.|Avenida|Alameda|Travessa|Quadra|Lote)\s+[A-Za-zÀ-ÿ\s]+,?\s*\d+', "Endereço"),
-        
-        # Financial Data
-        "bank_account": (r'\b\d{4}-?\d{1}\s+\d{5,}-?\d{1}\b', "Conta Bancária"),
-        "credit_card": (r'\b\d{5}-?\d{6}-?\d{5}-?\d{4}\b', "Cartão de Crédito"),
-        "pix": (r'\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b', "PIX (UUID)"),
-        
-        # Vehicles
-        "plate_old": (r'\b[A-Z]{3}-?\d{4}\b', "Placa de Veículo (antiga)"),
-        "plate_mercosul": (r'\b[A-Z]{3}\d[A-Z]\d{2}\b', "Placa de Veículo (Mercosul)"),
+        "phone": (r'\(?0?\d{2}\)?[\s-]?9?\d{4}[\s-]\d{4}\b', "Telefone"),
+        "address": (r'(?i)(Rua|Av|Avenida|Alameda|Travessa)\s+[A-Z][a-z]+', "Endereço"), # Simplified for file size
+        "bank_account": (r'\b\d{4,5}[-\s]\d{1}\b', "Conta Bancária"),
+        "pix": (r'\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b', "PIX")
     }
     
-    # If enabled_pii_types is None or empty, use all types
-    if not enabled_pii_types:
-        enabled_pii_types = list(pii_pattern_map.keys())
+    # Load config if needed
+    if enabled_pii_types is None:
+        try:
+            if os.path.exists(CONFIG_FILE):
+                with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+                    enabled_pii_types = json.load(f).get('enabled_pii_types')
+        except: pass
+    if enabled_pii_types is None: enabled_pii_types = list(pii_pattern_map.keys())
 
-    if not api_key:
-        # Advanced Offline Regex Check - only check enabled types
-        import re
-        
-        detected = []
-        for pii_id in enabled_pii_types:
-            if pii_id in pii_pattern_map:
-                pat, name = pii_pattern_map[pii_id]
-                if re.search(pat, text, re.IGNORECASE):
-                    if name not in detected:  # Avoid duplicates
-                        detected.append(name)
-        
-        if detected:
-            return {
-                "is_sensitive": True,
-                "privacy_status": "Sigiloso",
-                "reason": f"Dados sensíveis detectados: {', '.join(detected)}",
-                "detected_pii": detected
-            }
+    # Offline Check
+    detected = []
+    for pii_id in enabled_pii_types:
+        if pii_id in pii_pattern_map:
+            pat, name = pii_pattern_map[pii_id]
+            if re.search(pat, text, re.IGNORECASE if pii_id != "address" else 0):
+                if name not in detected: detected.append(name)
+
+    provider = ProviderFactory.get_provider()
+    if provider:
+        enabled_list = ", ".join(detected) if detected else "todos"
+        result = provider.analyze_privacy(text, enabled_list)
+        if "error" not in result:
+            result['category'] = get_macro_category(result.get('detected_pii', []))
+            return result
+
+    # Offline Result
+    if detected:
         return {
-            "is_sensitive": False,
-            "privacy_status": "Público",
-            "reason": "Nenhum dado sensível detectado",
-            "detected_pii": []
+            "is_sensitive": True, "privacy_status": "Sigiloso",
+            "category": get_macro_category(detected),
+            "reason": f"Dados detectados via regex: {', '.join(detected)}",
+            "detected_pii": detected
         }
+    return {"is_sensitive": False, "privacy_status": "Público", "category": "Público", "reason": "Nenhum dado detectado", "detected_pii": []}
 
-    try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.0-flash')
-        
-        # Build enabled types description for prompt
-        enabled_types_desc = []
-        type_map = {
-            "cpf": "CPF", "rg": "RG", "cnh": "CNH", 
-            "passport": "Passaporte", "voter_id": "Título de Eleitor",
-            "birth_certificate": "Certidão de Nascimento",
-            "email": "Email", "phone": "Telefone", 
-            "address": "Endereço", "cep": "CEP",
-            "bank_account": "Conta Bancária", "credit_card": "Cartão de Crédito", 
-            "pix": "Chave PIX",
-            "plate_old": "Placa de Veículo", "plate_mercosul": "Placa Mercosul",
-            "name": "Nome Pessoal", "health": "Dados de Saúde", 
-            "family_dispute": "Conflitos Familiares"
-        }
-        
-        for pii_id in enabled_pii_types:
-            if pii_id in type_map:
-                enabled_types_desc.append(type_map[pii_id])
-        
-        enabled_list = ", ".join(enabled_types_desc) if enabled_types_desc else "todos os tipos"
-        
-        prompt = f"""
-        Analyze the following text for Personal Identifiable Information (PII) or sensitive personal contexts.
-        Strictly follow the Brazilian LGPD and Access to Information Law standards.
-
-        **IMPORTANT**: Only detect and report the following PII types: {enabled_list}
-        Ignore any other types of PII that are not in this list.
-
-        Criteria for 'Sensitive' (Sigiloso):
-        
-        **Identity Documents** (if enabled):
-        - Contains names of private individuals (not public figures)
-        - Contains CPF, RG, CNH (Carteira Nacional de Habilitação)
-        - Contains Passport numbers, Título de Eleitor
-        - Contains birth certificates or other civil registry numbers
-        
-        **Contact Information** (if enabled):
-        - Contains Email addresses, Phone Numbers
-        - Contains physical addresses (street, number, CEP)
-        
-        **Financial Data** (if enabled):
-        - Contains bank account numbers (agência + conta)
-        - Contains credit card numbers
-        - Contains PIX keys (CPF, email, phone, random key)
-        
-        **Vehicles** (if enabled):
-        - Contains vehicle plates (old format ABC-1234 or Mercosul format ABC1D23)
-        
-        **Health & Personal Situations** (if enabled):
-        - Contains personal health data or medical history
-        - Contains descriptions of family disputes, harassment, or personal financial situations
-        
-        **Testing Data**:
-        - Contains 'Dados Sintéticos' or mock PII patterns often used in testing
-
-        Criteria for 'Public' (Público):
-        - General complaints about infrastructure (holes, lights, trash)
-        - Policy questions without personal data
-        - Praise for public services without identifying other citizens
-        - Questions about public processes using only protocol numbers
-
-        Return JSON:
-        {{
-            "is_sensitive": boolean, 
-            "privacy_status": "Sigiloso" | "Público",
-            "reason": "Short explanation (PT-BR)",
-            "detected_pii": ["List ONLY the enabled types detected, e.g., 'CPF', 'Email', etc."]
-        }}
-
-        Text: "{text}"
-        """
-        
-        response = model.generate_content(prompt)
-        content = response.text.strip()
-        
-        # Clean markdown
-        if content.startswith("```json"):
-            content = content[7:-3].strip()
-        elif content.startswith("```"):
-            content = content[3:-3].strip()
-            
-        return json.loads(content)
-
-    except Exception as e:
-        print(f"Gemini API Error: {e}")
-        return default_response
-
-# Main entry point helper that combines both (for backward compatibility if needed)
 def classify_and_filter(text, enabled_pii_types=None):
-    privacy_result = analyze_privacy(text, enabled_pii_types=enabled_pii_types)
-    
-    # If using old classification logic, we can merge or just return privacy
-    # For Edital 8.1 focus, Privacy is paramount.
-    
-    return privacy_result
+    return analyze_privacy(text, enabled_pii_types=enabled_pii_types)
 

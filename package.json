@@ -12,6 +12,7 @@
     "test:headed": "playwright test --headed",
     "test:ui": "playwright test --ui",
     "demo": "playwright test tests/demo_pii_system.spec.js --headed --workers=1",
+    "live-demo": "playwright test tests/test_live_esic_demo.spec.js --headed --workers=1",
     "demo:headless": "playwright test tests/demo_pii_system.spec.js",
     "simulate": "playwright test tests/simulation.spec.js --headed --workers=1",
     "simulate:headless": "playwright test tests/simulation.spec.js",
@@ -27,6 +28,7 @@
   },
   "dependencies": {
     "playwright": "^1.58.0",
-    "playwright-core": "^1.58.0"
+    "playwright-core": "^1.58.0",
+    "xlsx": "^0.18.5"
   }
 }

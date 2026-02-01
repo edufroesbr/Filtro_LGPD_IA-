@@ -45,9 +45,17 @@
                 <button id="submissions-btn"
                     style="background:none; border:none; cursor:pointer; margin-right:10px; font-size:1.2rem;"
                     aria-label="Minhas Manifestações" title="Minhas Manifestações">📂</button>
+
+                <!-- Added Dashboard and Settings buttons -->
+                <button id="dashboard-btn"
+                    style="background:none; border:none; cursor:pointer; margin-right:10px; font-size:1.2rem;"
+                    aria-label="Dashboard Administrativo" title="Dashboard Administrativo"
+                    onclick="window.location.href='/admin_final.html'">📊</button>
+
                 <button id="settings-btn"
                     style="background:none; border:none; cursor:pointer; margin-right:10px; font-size:1.2rem;"
-                    aria-label="Configurações">⚙️</button>
+                    aria-label="Configurações" title="Configurações">⚙️</button>
+
                 <i class="user-icon">👤</i>
                 <span>EDUARDO FROES RIBEIRO DE OLIVA ▼</span>
             </div>
@@ -175,7 +183,7 @@
                 <!-- Review / Summary Section -->
                 <div id="review-section" class="hidden">
                     <div class="ai-summary-box">
-                        <h4>🤖 Texto Transcrito (Pode editar se precisar)</h4>
+                        <h4>Texto Transcrito (Pode editar se precisar)</h4>
                         <!-- Using a textarea for editing the transcription -->
                         <textarea id="ai-summary-text" class="summary-textarea"></textarea>
                         <div class="review-actions">
@@ -200,7 +208,6 @@
 
                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                     <div class="ai-pill hidden" id="ai-feedback">
-                        <span style="font-size: 1.2rem;">🤖</span>
                         <span id="ai-category">Detectando...</span>
                     </div>
 
@@ -227,166 +234,7 @@
             style="width: 50px; height: 50px; border-radius: 50%; background: var(--gdf-blue-dark); color: white; border: none; font-size: 1.5rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">♿</button>
     </div>
 
-    <!-- Settings Modal -->
-    <div id="settings-modal" class="hidden"
-        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px); overflow-y: auto; padding: 20px;">
-        <div
-            style="background: white; padding: 30px; border-radius: 16px; width: 90%; max-width: 700px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
-            <h2 style="color: var(--gdf-blue-dark); margin-bottom: 20px;">⚙️ Configurações</h2>
 
-            <!-- API Key Section -->
-            <div style="margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #eee;">
-                <h3 style="font-size: 1.1rem; margin-bottom: 15px; color: #333;">🤖 Inteligência Artificial</h3>
-                <p style="margin-bottom: 15px; color: #555; font-size: 0.9rem;">Para utilizar a inteligência real
-                    (Google Gemini), insira sua chave de
-                    API abaixo. Caso contrário, o sistema usará o modo de simulação.</p>
-
-                <div style="margin-bottom: 15px;">
-                    <label for="api-key-input" style="display: block; font-weight: bold; margin-bottom: 8px;">Google
-                        Gemini
-                        API Key
-                        (Opcional)</label>
-                    <input type="password" id="api-key-input" placeholder="AIzaSy..."
-                        style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem;">
-                </div>
-            </div>
-
-            <!-- Privacy Filters Section -->
-            <div style="margin-bottom: 30px;">
-                <h3 style="font-size: 1.1rem; margin-bottom: 10px; color: #333;">🛡️ Filtros de Privacidade (LGPD)</h3>
-                <p style="margin-bottom: 20px; color: #555; font-size: 0.9rem;">Selecione quais tipos de dados pessoais
-                    você deseja que sejam detectados e filtrados automaticamente:</p>
-
-                <!-- Documents Category -->
-                <div class="pii-category"
-                    style="margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px;">
-                    <h4 style="font-size: 1rem; margin-bottom: 12px; color: var(--gdf-blue-dark);">📄 Documentos de
-                        Identidade</h4>
-                    <div
-                        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" class="pii-filter" data-pii-type="cpf" checked
-                                style="width: 18px; height: 18px;">
-                            <span style="font-size: 0.9rem;">CPF</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" class="pii-filter" data-pii-type="rg" checked
-                                style="width: 18px; height: 18px;">
-                            <span style="font-size: 0.9rem;">RG</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" class="pii-filter" data-pii-type="cnh" checked
-                                style="width: 18px; height: 18px;">
-                            <span style="font-size: 0.9rem;">CNH</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" class="pii-filter" data-pii-type="passport" checked
-                                style="width: 18px; height: 18px;">
-                            <span style="font-size: 0.9rem;">Passaporte</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" class="pii-filter" data-pii-type="voter_id" checked
-                                style="width: 18px; height: 18px;">
-                            <span style="font-size: 0.9rem;">Título de Eleitor</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" class="pii-filter" data-pii-type="birth_cert" checked
-                                style="width: 18px; height: 18px;">
-                            <span style="font-size: 0.9rem;">Certidão Nasc.</span>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Contact Category -->
-                <div class="pii-category"
-                    style="margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px;">
-                    <h4 style="font-size: 1rem; margin-bottom: 12px; color: var(--gdf-blue-dark);">📞 Informações de
-                        Contato</h4>
-                    <div
-                        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" class="pii-filter" data-pii-type="email" checked
-                                style="width: 18px; height: 18px;">
-                            <span style="font-size: 0.9rem;">Email</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" class="pii-filter" data-pii-type="phone" checked
-                                style="width: 18px; height: 18px;">
-                            <span style="font-size: 0.9rem;">Telefone</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" class="pii-filter" data-pii-type="address" checked
-                                style="width: 18px; height: 18px;">
-                            <span style="font-size: 0.9rem;">Endereço</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" class="pii-filter" data-pii-type="cep" checked
-                                style="width: 18px; height: 18px;">
-                            <span style="font-size: 0.9rem;">CEP</span>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Financial Category -->
-                <div class="pii-category"
-                    style="margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px;">
-                    <h4 style="font-size: 1rem; margin-bottom: 12px; color: var(--gdf-blue-dark);">💳 Dados Financeiros
-                    </h4>
-                    <div
-                        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" class="pii-filter" data-pii-type="bank_account" checked
-                                style="width: 18px; height: 18px;">
-                            <span style="font-size: 0.9rem;">Conta Bancária</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" class="pii-filter" data-pii-type="credit_card" checked
-                                style="width: 18px; height: 18px;">
-                            <span style="font-size: 0.9rem;">Cartão de Crédito</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" class="pii-filter" data-pii-type="pix" checked
-                                style="width: 18px; height: 18px;">
-                            <span style="font-size: 0.9rem;">Chave PIX</span>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Vehicles Category -->
-                <div class="pii-category"
-                    style="margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px;">
-                    <h4 style="font-size: 1rem; margin-bottom: 12px; color: var(--gdf-blue-dark);">🚗 Veículos</h4>
-                    <div
-                        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" class="pii-filter" data-pii-type="plate" checked
-                                style="width: 18px; height: 18px;">
-                            <span style="font-size: 0.9rem;">Placa de Veículo</span>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Quick Actions -->
-                <div style="display: flex; gap: 10px; margin-top: 15px;">
-                    <button id="select-all-pii"
-                        style="padding: 8px 15px; border: 1px solid var(--gdf-green); background: none; color: var(--gdf-green); border-radius: 6px; cursor: pointer; font-size: 0.85rem; flex: 1;">✓
-                        Selecionar Todos</button>
-                    <button id="deselect-all-pii"
-                        style="padding: 8px 15px; border: 1px solid #dc3545; background: none; color: #dc3545; border-radius: 6px; cursor: pointer; font-size: 0.85rem; flex: 1;">✗
-                        Desmarcar Todos</button>
-                </div>
-            </div>
-
-            <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                <button id="close-settings-btn"
-                    style="padding: 10px 20px; border: none; background: #eee; border-radius: 8px; cursor: pointer;">Cancelar</button>
-                <button id="save-settings-btn"
-                    style="padding: 10px 20px; border: none; background: var(--gdf-green); color: white; border-radius: 8px; font-weight: bold; cursor: pointer;">💾
-                    Salvar Configurações</button>
-            </div>
-            <p id="settings-status" style="margin-top: 10px; font-size: 0.9rem; text-align: center;"></p>
-        </div>
-    </div>
 
     <!-- My Submissions Modal -->
     <div id="submissions-modal" class="hidden"
@@ -412,6 +260,8 @@
         </div>
     </div>
 
+
+
     <!-- Redacted Text Modal -->
     <div id="redacted-modal" class="hidden"
         style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
@@ -433,6 +283,70 @@
         </div>
     </div>
 
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="hidden"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
+        <div
+            style="background: white; padding: 30px; border-radius: 16px; width: 90%; max-width: 500px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="color: var(--gdf-blue-dark); margin: 0;">Configurações</h2>
+                <button id="close-settings-btn"
+                    style="background:none; border:none; font-size: 1.5rem; cursor: pointer;">✕</button>
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <label for="api-key-input"
+                    style="display: block; margin-bottom: 8px; font-weight: bold; color: #555;">Chave
+                    de API (Google Gemini)</label>
+                <input type="password" id="api-key-input" placeholder="Cole sua chave aqui..."
+                    style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem;">
+                <small style="color: #888; display: block; margin-top: 5px;">A chave é salva apenas no seu
+                    navegador.</small>
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <h4 style="margin-bottom: 12px; color: #555;">Filtros de Privacidade (Ativos)</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="filter-cpf" class="pii-filter" data-pii-type="cpf" checked>
+                        <label for="filter-cpf">CPF</label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="filter-email" class="pii-filter" data-pii-type="email" checked>
+                        <label for="filter-email">Email</label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="filter-phone" class="pii-filter" data-pii-type="phone" checked>
+                        <label for="filter-phone">Telefone</label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="filter-address" class="pii-filter" data-pii-type="address" checked>
+                        <label for="filter-address">Endereço</label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="filter-pix" class="pii-filter" data-pii-type="pix" checked>
+                        <label for="filter-pix">Chave PIX</label>
+                    </div>
+                </div>
+                <div style="margin-top: 15px; display: flex; gap: 10px;">
+                    <button id="select-all-pii"
+                        style="background: none; border: 1px solid #ccc; padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; cursor: pointer;">Marcar
+                        Todos</button>
+                    <button id="deselect-all-pii"
+                        style="background: none; border: 1px solid #ccc; padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; cursor: pointer;">Desmarcar
+                        Todos</button>
+                </div>
+            </div>
+
+            <div style="border-top: 1px solid #eee; padding-top: 20px; text-align: right;">
+                <button id="save-settings-btn"
+                    style="padding: 12px 30px; background: var(--gdf-green); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem;">Salvar
+                    Configurações</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/app.js"></script>
     <script>
         // Simple tab switching logic inject for immediate feedback (though app.js handles it too)

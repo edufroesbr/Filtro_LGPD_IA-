@@ -112,7 +112,7 @@ test('Simulate 30 requests and verify admin dashboard', async ({ page }) => {
 
     // Verify content of top item
     const lastRequest = mixedRequests[mixedRequests.length - 1];
-    const firstItemText = await items.first().locator('p').innerText();
+    const firstItemText = await items.first().locator('.submission-body').innerText();
 
     console.log(`Last submitted (Original): "${lastRequest.text}"`);
     console.log(`First in list (DB): "${firstItemText}"`);

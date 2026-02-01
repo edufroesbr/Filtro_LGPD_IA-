@@ -150,6 +150,30 @@ Com o servidor rodando na porta 8000, o PWA "sincroniza" automaticamente as requ
 - **Modo Online**: Quando o servidor `backend/main.py` está rodando, as classificações de IA e redação de PII são processadas via API.
 - **Modo Offline**: Se o servidor cair, o PWA continua funcionando para coleta de dados, mas utiliza classificações locais simplificadas até que a conexão (sincronização) seja restabelecida.
 
+### 5. 🔐 Acesso Administrativo (Novo!)
+
+Para administradores, há duas formas de acessar o dashboard:
+
+**Opção 1: Página Dedicada (Recomendado)**
+```
+http://localhost:8000/admin_final.html
+```
+- Dashboard em tempo real com auto-atualização
+- Download direto do arquivo CSV
+- Interface profissional dark mode
+- Estatísticas completas e gráficos interativos
+
+**Opção 2: Botões na Aplicação**
+- Clique no botão 📊 no canto superior direito
+- Acesse "Dashboard Administrativo"
+
+**Download do CSV:**
+- Pelo painel admin: botão "📥 Baixar CSV"
+- Acesso direto: `http://localhost:8000/data/classifications.csv`
+- Arquivo local: `participa_df/data/classifications.csv`
+
+> 📖 **Guia completo**: Consulte [ADMIN_GUIDE.md](ADMIN_GUIDE.md) para instruções detalhadas
+
 ---
 
 ## 🎭 Demonstrações Automatizadas (Playwright)

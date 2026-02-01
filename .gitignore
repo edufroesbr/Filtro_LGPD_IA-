@@ -1,0 +1,32 @@
+# Node
+node_modules/
+npm-debug.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+
+# Project Specific
+data/classifications.csv
+data/*.csv
+backend/*.csv
+.vscode/
+.idea/
+.DS_Store
+
+# Temporary
+*.log
+*.tmp
+
+
+# Temporary Office Files
+~$*
+

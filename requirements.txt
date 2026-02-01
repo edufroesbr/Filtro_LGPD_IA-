@@ -1,6 +1,9 @@
 fastapi
 uvicorn
 google-generativeai
+openai
+anthropic
+httpx
 pandas
 openpyxl
 pypdf
